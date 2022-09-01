@@ -184,7 +184,7 @@ func TestEndToEnd(t *testing.T) {
 	})
 
 	httpc := resty.New().
-		SetHostURL("http://localhost:8080").
+		SetBaseURL("http://localhost:8080").
 		SetRedirectPolicy(redirPolicy)
 
 	// shorten URL
