@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/Yandex-Praktikum/go-profilable-shortener/internal/store"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 )
 
 type Instance struct {

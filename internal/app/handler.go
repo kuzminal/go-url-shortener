@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/Yandex-Praktikum/go-profilable-shortener/internal/auth"
-	"github.com/Yandex-Praktikum/go-profilable-shortener/internal/store"
-	"github.com/Yandex-Praktikum/go-profilable-shortener/models"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/auth"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
 )
 
 func (i *Instance) ShortenHandler(w http.ResponseWriter, r *http.Request) {

@@ -1,4 +1,4 @@
-module github.com/Yandex-Praktikum/go-profilable-shortener
+module github.com/Yandex-Practicum/go-musthave-shortener-trainer
 
 go 1.16
 

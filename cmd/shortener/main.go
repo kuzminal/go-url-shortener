@@ -10,9 +10,9 @@ import (
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/stdlib"
 
-	"github.com/Yandex-Praktikum/go-profilable-shortener/internal/app"
-	"github.com/Yandex-Praktikum/go-profilable-shortener/internal/config"
-	"github.com/Yandex-Praktikum/go-profilable-shortener/internal/store"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 )
 
 func main() {

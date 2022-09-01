@@ -18,8 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Yandex-Praktikum/go-profilable-shortener/internal/config"
-	"github.com/Yandex-Praktikum/go-profilable-shortener/models"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
 )
 
 func TestMain(m *testing.M) {
