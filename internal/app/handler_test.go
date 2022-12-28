@@ -34,7 +34,7 @@ func Test_ShortenAPIHandler(t *testing.T) {
 		expectedResponse []byte
 	}{
 		{
-			name:             "bad_request",
+			name:             "bad_request_not_an_url",
 			url:              "htt_p://o.com",
 			expectedStatus:   http.StatusBadRequest,
 			expectedResponse: []byte("Cannot parse given string as URL"),
@@ -169,4 +169,61 @@ func Test_userURLs(t *testing.T) {
 			assert.Equal(t, tc.expectedBody, w.Body.Bytes())
 		})
 	}
+}
+
+func Test_ShortenHandler(t *testing.T) {
+	targetURL := "https://praktikum.yandex.ru/"
+
+	instance := &Instance{
+		baseURL: "http://localhost:8080",
+		store:   store.NewInMemory(),
+	}
+
+	testCases := []struct {
+		name             string
+		url              string
+		expectedStatus   int
+		expectedResponse []byte
+	}{
+		{
+			name:             "bad_request",
+			url:              "htt_p://o.com",
+			expectedStatus:   http.StatusBadRequest,
+			expectedResponse: []byte("Cannot parse given string as URL"),
+		},
+		{
+			name:             "success",
+			url:              targetURL,
+			expectedStatus:   http.StatusCreated,
+			expectedResponse: []byte("http://localhost:8080/0"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			body := bytes.NewBuffer([]byte(tc.url))
+
+			r := httptest.NewRequest("POST", "http://localhost:8080/api/shorten", body)
+			w := httptest.NewRecorder()
+
+			instance.ShortenHandler(w, r)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.Equal(t, tc.expectedResponse, w.Body.Bytes())
+		})
+	}
+}
+
+func TestInstance_PingHandler(t *testing.T) {
+	instance := &Instance{
+		baseURL: "http://localhost:8080",
+		store:   store.NewInMemory(),
+	}
+	t.Run("ping", func(t *testing.T) {
+		r := httptest.NewRequest("GET", "http://localhost:8080/ping", nil)
+		w := httptest.NewRecorder()
+
+		instance.PingHandler(w, r)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
 }

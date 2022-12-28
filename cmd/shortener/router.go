@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/go-chi/chi/v5/middleware"
 	"net/http"
 	"strings"
 
@@ -14,14 +15,17 @@ import (
 func newRouter(i *app.Instance) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(gzipMiddleware, authMiddleware)
-	r.Post("/", i.ShortenHandler)
-	r.Post("/api/shorten", i.ShortenAPIHandler)
-	r.Post("/api/shorten/batch", i.BatchShortenAPIHandler)
-	r.Delete("/api/user/urls", i.BatchRemoveAPIHandler)
-	r.Get("/{id}", i.ExpandHandler)
-	r.Get("/api/user/urls", i.UserURLsHandler)
-	r.Get("/ping", i.PingHandler)
+	r.Mount("/debug", middleware.Profiler())
+	r.Group(func(r chi.Router) {
+		r.Use(gzipMiddleware, authMiddleware)
+		r.Post("/", i.ShortenHandler)
+		r.Post("/api/shorten", i.ShortenAPIHandler)
+		r.Post("/api/shorten/batch", i.BatchShortenAPIHandler)
+		r.Delete("/api/user/urls", i.BatchRemoveAPIHandler)
+		r.Get("/{id}", i.ExpandHandler)
+		r.Get("/api/user/urls", i.UserURLsHandler)
+		r.Get("/ping", i.PingHandler)
+	})
 
 	return r
 }

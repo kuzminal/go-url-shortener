@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -39,7 +41,8 @@ func Test_run(t *testing.T) {
 	targetURL := "https://praktikum.yandex.ru/"
 
 	for i := 0; i < 50; i++ {
-		expectedID := fmt.Sprintf("%x", i)
+		//expectedID := fmt.Sprintf("%x", i)
+		expectedID := strconv.Itoa(i)
 
 		t.Run("shorten", func(t *testing.T) {
 			expectResponse := "http://localhost:8080/" + expectedID
@@ -79,7 +82,7 @@ func Test_run(t *testing.T) {
 	}
 
 	for i := 50; i < 100; i++ {
-		expectedID := fmt.Sprintf("%x", i)
+		expectedID := fmt.Sprintf("%v", i)
 
 		t.Run("shortenAPI", func(t *testing.T) {
 			expectResponse := "{\"result\":\"http://localhost:8080/" + expectedID + "\"}\n"
@@ -143,7 +146,7 @@ func Test_run(t *testing.T) {
 		b, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 
-		expectResponse := "http://localhost:8080/64"
+		expectResponse := "http://localhost:8080/100"
 		actualResponse := string(b)
 
 		require.Equal(t, expectResponse, actualResponse)
@@ -167,7 +170,7 @@ func Test_run(t *testing.T) {
 		b, err := io.ReadAll(zr)
 		require.NoError(t, err)
 
-		expectResponse := "http://localhost:8080/65"
+		expectResponse := "http://localhost:8080/101"
 		actualResponse := string(b)
 
 		require.Equal(t, expectResponse, actualResponse)
@@ -212,4 +215,13 @@ func TestEndToEnd(t *testing.T) {
 
 	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode())
 	assert.Equal(t, originalURL, resp.Header().Get("Location"))
+}
+
+func Test_newStore(t *testing.T) {
+	t.Run("create file store", func(t *testing.T) {
+		config.PersistFile = "./store"
+		store, err := newStore(context.Background())
+		require.NoError(t, err)
+		require.NotNil(t, store)
+	})
 }

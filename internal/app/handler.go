@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"net/url"
-
-	"github.com/go-chi/chi/v5"
 
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/auth"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
@@ -134,6 +133,7 @@ func (i *Instance) UserURLsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var resp []models.URLResponse
 	for id, u := range urls {
+		//strId := strconv.Itoa(id)
 		resp = append(resp, models.URLResponse{
 			ShortURL:    i.baseURL + "/" + id,
 			OriginalURL: u.String(),
