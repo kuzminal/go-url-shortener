@@ -12,7 +12,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -41,8 +40,7 @@ func Test_run(t *testing.T) {
 	targetURL := "https://praktikum.yandex.ru/"
 
 	for i := 0; i < 50; i++ {
-		//expectedID := fmt.Sprintf("%x", i)
-		expectedID := strconv.Itoa(i)
+		expectedID := fmt.Sprintf("%x", i)
 
 		t.Run("shorten", func(t *testing.T) {
 			expectResponse := "http://localhost:8080/" + expectedID
@@ -82,7 +80,7 @@ func Test_run(t *testing.T) {
 	}
 
 	for i := 50; i < 100; i++ {
-		expectedID := fmt.Sprintf("%v", i)
+		expectedID := fmt.Sprintf("%x", i)
 
 		t.Run("shortenAPI", func(t *testing.T) {
 			expectResponse := "{\"result\":\"http://localhost:8080/" + expectedID + "\"}\n"
@@ -146,7 +144,7 @@ func Test_run(t *testing.T) {
 		b, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 
-		expectResponse := "http://localhost:8080/100"
+		expectResponse := "http://localhost:8080/64"
 		actualResponse := string(b)
 
 		require.Equal(t, expectResponse, actualResponse)
@@ -170,7 +168,7 @@ func Test_run(t *testing.T) {
 		b, err := io.ReadAll(zr)
 		require.NoError(t, err)
 
-		expectResponse := "http://localhost:8080/101"
+		expectResponse := "http://localhost:8080/65"
 		actualResponse := string(b)
 
 		require.Equal(t, expectResponse, actualResponse)
