@@ -36,7 +36,7 @@ func BenchmarkInMemory_Load(b *testing.B) {
 func BenchmarkInMemory_SaveBatch(b *testing.B) {
 	ctx := context.Background()
 	store := NewInMemory()
-	urls := make([]*url.URL, 1000, 1000)
+	urls := make([]*url.URL, 1000)
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
 	for i := 0; i < 1000; i++ {
 		urls[i] = urlToStore
@@ -65,7 +65,7 @@ func BenchmarkInMemory_SaveUser(b *testing.B) {
 func BenchmarkInMemory_SaveUserBatch(b *testing.B) {
 	ctx := context.Background()
 	store := NewInMemory()
-	urls := make([]*url.URL, 1000, 1000)
+	urls := make([]*url.URL, 1000)
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
 	for i := 0; i < 1000; i++ {
 		urls[i] = urlToStore
@@ -96,7 +96,7 @@ func BenchmarkInMemory_LoadUser(b *testing.B) {
 func BenchmarkInMemory_LoadUsers(b *testing.B) {
 	ctx := context.Background()
 	store := NewInMemory()
-	urls := make([]*url.URL, 1000, 1000)
+	urls := make([]*url.URL, 1000)
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
 	uuidToStore := uuid.Must(uuid.NewV4())
 	for i := 0; i < 1000; i++ {
@@ -115,9 +115,9 @@ func TestInMemory_Save(t *testing.T) {
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
 	m := NewInMemory()
 	t.Run("save", func(t *testing.T) {
-		gotId, err := m.Save(context.Background(), urlToStore)
+		gotID, err := m.Save(context.Background(), urlToStore)
 		assert.NoError(t, err)
-		assert.Equal(t, "0", gotId)
+		assert.Equal(t, "0", gotID)
 	})
 }
 
@@ -125,17 +125,17 @@ func TestInMemory_Load(t *testing.T) {
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
 	m := NewInMemory()
 	ctx := context.Background()
-	gotId, _ := m.Save(ctx, urlToStore)
+	gotID, _ := m.Save(ctx, urlToStore)
 
 	t.Run("load regular", func(t *testing.T) {
-		u, err := m.Load(ctx, gotId)
+		u, err := m.Load(ctx, gotID)
 		assert.NoError(t, err)
 		assert.Equal(t, u, urlToStore)
 	})
 	t.Run("load deleted", func(t *testing.T) {
 		//gotIdInt, _ := strconv.Atoi(gotId)
-		m.store[gotId] = nil
-		_, err := m.Load(ctx, gotId)
+		m.store[gotID] = nil
+		_, err := m.Load(ctx, gotID)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, ErrDeleted)
 	})
@@ -149,7 +149,7 @@ func TestInMemory_Load(t *testing.T) {
 func TestInMemory_SaveBatch(t *testing.T) {
 	ctx := context.Background()
 	store := NewInMemory()
-	urls := make([]*url.URL, 1000, 1000)
+	urls := make([]*url.URL, 1000)
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
 	for i := 0; i < 1000; i++ {
 		urls[i] = urlToStore
@@ -204,7 +204,7 @@ func TestInMemory_LoadUser(t *testing.T) {
 func TestInMemory_SaveUserBatch(t *testing.T) {
 	ctx := context.Background()
 	store := NewInMemory()
-	urls := make([]*url.URL, 1000, 1000)
+	urls := make([]*url.URL, 1000)
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
 	for i := 0; i < 1000; i++ {
 		urls[i] = urlToStore
@@ -220,7 +220,7 @@ func TestInMemory_SaveUserBatch(t *testing.T) {
 func TestInMemory_LoadUsers(t *testing.T) {
 	ctx := context.Background()
 	store := NewInMemory()
-	urls := make([]*url.URL, 1000, 1000)
+	urls := make([]*url.URL, 1000)
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
 	uuidToStore := uuid.Must(uuid.NewV4())
 	for i := 0; i < 1000; i++ {
@@ -244,10 +244,10 @@ func TestInMemory_LoadUsers(t *testing.T) {
 func TestInMemory_DeleteUsers(t *testing.T) {
 	ctx := context.Background()
 	store := NewInMemory()
-	urls := make([]*url.URL, 1000, 1000)
+	urls := make([]*url.URL, 1000)
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
 	uuidToStore := uuid.Must(uuid.NewV4())
-	ids := make([]string, 1000, 1000)
+	ids := make([]string, 1000)
 	for i := 0; i < 1000; i++ {
 		urls[i] = urlToStore
 		ids[i] = fmt.Sprintf("%d", i)

@@ -146,9 +146,9 @@ func TestFileStore_Save(t *testing.T) {
 	ctx := context.Background()
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
 	t.Run("save regular", func(t *testing.T) {
-		gotId, err := store.Save(ctx, urlToStore)
+		gotID, err := store.Save(ctx, urlToStore)
 		assert.NoError(t, err)
-		assert.Equal(t, "0", gotId)
+		assert.Equal(t, "0", gotID)
 		assert.Equal(t, store.store.Hot["0"], urlToStore)
 	})
 }
@@ -157,7 +157,7 @@ func TestFileStore_SaveBatch(t *testing.T) {
 	store, _ := NewFileStore("./store")
 	ctx := context.Background()
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
-	urls := make([]*url.URL, 1000, 1000)
+	urls := make([]*url.URL, 1000)
 	for i := 0; i < 1000; i++ {
 		urls[i] = urlToStore
 	}
@@ -173,9 +173,9 @@ func TestFileStore_SaveUser(t *testing.T) {
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/user")
 	uuidToStore, _ := uuid.NewV4()
 	t.Run("save regular", func(t *testing.T) {
-		gotId, err := store.SaveUser(ctx, uuidToStore, urlToStore)
+		gotID, err := store.SaveUser(ctx, uuidToStore, urlToStore)
 		assert.NoError(t, err)
-		assert.Equal(t, "0", gotId)
+		assert.Equal(t, "0", gotID)
 		assert.Equal(t, store.store.Hot["0"], urlToStore)
 		assert.Equal(t, store.store.UserHot[uuidToStore.String()]["0"], urlToStore)
 	})
@@ -186,7 +186,7 @@ func TestFileStore_SaveUserBatch(t *testing.T) {
 	ctx := context.Background()
 	urlToStore, _ := url.Parse("https://practicum.yandex.ru/user")
 	uuidToStore, _ := uuid.NewV4()
-	urls := make([]*url.URL, 1000, 1000)
+	urls := make([]*url.URL, 1000)
 	for i := 0; i < 1000; i++ {
 		urls[i] = urlToStore
 	}
