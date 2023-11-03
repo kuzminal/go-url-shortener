@@ -1,4 +1,5 @@
-// Package staticlint для запуска проверок кода.
+// staticlint для запуска проверок кода.
+//
 // Для того чтобы запустить проверку, сначала нужно собрать multichecker командой :
 //
 //	go build cmd/staticlint/multichecker.go
@@ -6,7 +7,7 @@
 // Затем можно запускать собранный файл с указанием проверяемого пакета:
 //
 //	./multichecker ./././cmd/shortener/
-package staticlint
+package main
 
 import (
 	"go/ast"
@@ -37,7 +38,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 				switch ex := node.(type) {
 				case *ast.SelectorExpr:
 					if ex.Sel.Name == "Exit" {
-						pass.Reportf(ex.Pos(), "os.Exit in main.main() is not allowed")
+						if ex.X.(*ast.Ident).Name == "os" {
+							pass.Reportf(ex.Pos(), "os.Exit in main.main() is not allowed")
+						}
 					}
 				}
 				return true

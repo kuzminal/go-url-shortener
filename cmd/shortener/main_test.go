@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -212,4 +213,13 @@ func TestEndToEnd(t *testing.T) {
 
 	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode())
 	assert.Equal(t, originalURL, resp.Header().Get("Location"))
+}
+
+func Test_newStore(t *testing.T) {
+	t.Run("create file store", func(t *testing.T) {
+		config.PersistFile = "./store"
+		store, err := newStore(context.Background())
+		require.NoError(t, err)
+		require.NotNil(t, store)
+	})
 }
