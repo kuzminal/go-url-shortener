@@ -337,3 +337,48 @@ func ExampleInstance_UserURLsHandler() {
 	w := httptest.NewRecorder()
 	instance.UserURLsHandler(w, r)
 }
+
+func TestInstance_BatchShortenAPIHandler(t *testing.T) {
+	targetURL := "https://praktikum.yandex.ru/"
+
+	instance := &Instance{
+		baseURL: "http://localhost:8080",
+		store:   store.NewInMemory(),
+	}
+
+	testCases := []struct {
+		name             string
+		url              string
+		expectedStatus   int
+		expectedResponse []byte
+	}{
+		{
+			name:             "bad_request",
+			url:              "htt_p://o.com",
+			expectedStatus:   http.StatusBadRequest,
+			expectedResponse: []byte("Cannot parse given string as URL: htt_p://o.com"),
+		},
+		{
+			name:             "success",
+			url:              targetURL,
+			expectedStatus:   http.StatusCreated,
+			expectedResponse: []byte("[{\"correlation_id\":\"1\",\"short_url\":\"http://localhost:8080/0\"}]\n"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			b, err := json.Marshal([]models.BatchShortenRequest{{CorrelationID: "1", OriginalURL: tc.url}})
+			require.NoError(t, err)
+			body := bytes.NewBuffer(b)
+
+			r := httptest.NewRequest("POST", "http://localhost:8080/api/shorten/batch", body)
+			w := httptest.NewRecorder()
+
+			instance.BatchShortenAPIHandler(w, r)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.Equal(t, tc.expectedResponse, w.Body.Bytes())
+		})
+	}
+}

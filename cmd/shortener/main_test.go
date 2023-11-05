@@ -222,4 +222,11 @@ func Test_newStore(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, store)
 	})
+
+	t.Run("create pg store", func(t *testing.T) {
+		config.DatabaseDSN = "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
+		store, err := newStore(context.Background())
+		require.NoError(t, err)
+		require.NotNil(t, store)
+	})
 }

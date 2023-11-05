@@ -4,18 +4,45 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"net/http"
-	"time"
-
-	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/stdlib"
-
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/stdlib"
+	"net/http"
+	"os"
+	"text/template"
+	"time"
 )
 
+type BuildInfo struct {
+	BuildVersion string
+	BuildDate    string
+	BuildCommit  string
+}
+
+var buildVersion string
+var buildDate string
+var buildCommit string
+
+const buildInfo = `Build version: {{if .BuildVersion}}{{.BuildVersion}}{{else}}N/A{{end}}
+Build date: {{if .BuildDate}}{{.BuildDate}}{{else}}N/A{{end}}
+Build commit: {{if .BuildCommit}}{{.BuildCommit}}{{else}}N/A{{end}}
+`
+
 func main() {
+	bi := BuildInfo{
+		BuildVersion: buildVersion,
+		BuildDate:    buildDate,
+		BuildCommit:  buildCommit,
+	}
+
+	t := template.Must(template.New("list").Parse(buildInfo))
+	err := t.Execute(os.Stdout, bi)
+	if err != nil {
+		panic(err)
+	}
+
 	config.Parse()
 
 	if err := run(); err != nil {
