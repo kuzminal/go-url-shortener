@@ -55,7 +55,9 @@ func Test_run(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-				defer resp.Body.Close()
+				defer func(Body io.ReadCloser) {
+					_ = Body.Close()
+				}(resp.Body)
 
 				b, err := io.ReadAll(resp.Body)
 				require.NoError(t, err)
@@ -71,7 +73,9 @@ func Test_run(t *testing.T) {
 				resp, err := http.DefaultTransport.RoundTrip(r)
 				require.NoError(t, err)
 
-				defer resp.Body.Close()
+				defer func(Body io.ReadCloser) {
+					_ = Body.Close()
+				}(resp.Body)
 
 				assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
 				assert.Equal(t, targetURL, resp.Header.Get("Location"))
@@ -95,7 +99,9 @@ func Test_run(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-				defer resp.Body.Close()
+				defer func(Body io.ReadCloser) {
+					_ = Body.Close()
+				}(resp.Body)
 
 				b, err := io.ReadAll(resp.Body)
 				require.NoError(t, err)
@@ -115,7 +121,9 @@ func Test_run(t *testing.T) {
 				resp, err := http.DefaultTransport.RoundTrip(r)
 				require.NoError(t, err)
 
-				defer resp.Body.Close()
+				defer func(Body io.ReadCloser) {
+					_ = Body.Close()
+				}(resp.Body)
 
 				assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
 				assert.Equal(t, targetURL, resp.Header.Get("Location"))
@@ -139,7 +147,9 @@ func Test_run(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-		defer resp.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(resp.Body)
 
 		b, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
@@ -160,7 +170,9 @@ func Test_run(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-		defer resp.Body.Close()
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(resp.Body)
 
 		zr, err := gzip.NewReader(resp.Body)
 		require.NoError(t, err)
@@ -198,8 +210,8 @@ func TestEndToEnd(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, resp.StatusCode())
 	assert.NoError(t, func() error {
-		_, err := url.Parse(shortenURL)
-		return err
+		_, errs := url.Parse(shortenURL)
+		return errs
 	}())
 
 	// expand URL

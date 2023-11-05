@@ -161,8 +161,8 @@ func (i *Instance) BatchShortenAPIHandler(w http.ResponseWriter, r *http.Request
 
 	var urls []*url.URL
 	for _, pair := range req {
-		u, err := url.Parse(pair.OriginalURL)
-		if err != nil {
+		u, errs := url.Parse(pair.OriginalURL)
+		if errs != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			msg := fmt.Sprintf("Cannot parse given string as URL: %s", pair.OriginalURL)
 			_, _ = w.Write([]byte(msg))

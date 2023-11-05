@@ -58,7 +58,9 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("cannot create storage: %w", err)
 	}
-	defer storage.Close()
+	defer func(storage store.AuthStore) {
+		_ = storage.Close()
+	}(storage)
 
 	instance := app.NewInstance(config.BaseURL, storage)
 
@@ -67,11 +69,11 @@ func run() error {
 
 func newStore(ctx context.Context) (storage store.AuthStore, err error) {
 	if config.DatabaseDSN != "" {
-		rdb, err := newRDBStore(ctx, config.DatabaseDSN)
-		if err != nil {
+		rdb, errs := newRDBStore(ctx, config.DatabaseDSN)
+		if errs != nil {
 			return nil, fmt.Errorf("cannot create RDB store: %w", err)
 		}
-		if err := rdb.Bootstrap(ctx); err != nil {
+		if err = rdb.Bootstrap(ctx); err != nil {
 			return nil, fmt.Errorf("cannot bootstrap RDB store: %w", err)
 		}
 		return rdb, nil

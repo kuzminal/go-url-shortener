@@ -25,6 +25,7 @@ func init() {
 func TestRDB_Save(t *testing.T) {
 	t.Run("Save url into PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
+		require.NoError(t, err)
 		rawUrl, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
 		userId, err := store.SaveUser(context.Background(), user, rawUrl)
 		require.NoError(t, err)
@@ -32,6 +33,7 @@ func TestRDB_Save(t *testing.T) {
 	})
 	t.Run("Save url into PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
+		require.NoError(t, err)
 		rawUrl, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
 		urlId, err := store.Save(context.Background(), rawUrl)
 		require.NoError(t, err)
@@ -42,8 +44,10 @@ func TestRDB_Save(t *testing.T) {
 func TestRDB_Load(t *testing.T) {
 	t.Run("Delete users from PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
+		require.NoError(t, err)
 		rawUrl, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
 		urlId, err := store.SaveUser(context.Background(), user, rawUrl)
+		require.NoError(t, err)
 		urlFromDb, err := store.Load(context.Background(), urlId)
 		require.NoError(t, err)
 		require.NotEmpty(t, urlId)
@@ -54,8 +58,11 @@ func TestRDB_Load(t *testing.T) {
 func TestRDB_LoadUser(t *testing.T) {
 	t.Run("Delete users from PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
+		require.NoError(t, err)
 		rawUrl, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
+		require.NoError(t, err)
 		urlId, err := store.SaveUser(context.Background(), user, rawUrl)
+		require.NoError(t, err)
 		urlFromDb, err := store.LoadUser(context.Background(), user, urlId)
 		require.NoError(t, err)
 		require.NotEmpty(t, urlId)
@@ -66,8 +73,10 @@ func TestRDB_LoadUser(t *testing.T) {
 func TestRDB_DeleteUsers(t *testing.T) {
 	t.Run("Delete users from PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
+		require.NoError(t, err)
 		rawUrl, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
 		urlId, err := store.SaveUser(context.Background(), user, rawUrl)
+		require.NoError(t, err)
 		err = store.DeleteUsers(context.Background(), user, urlId)
 		require.NoError(t, err)
 		require.NotEmpty(t, urlId)
