@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -12,6 +13,9 @@ var (
 	PersistFile = ""
 	AuthSecret  = []byte("ololo-trololo-shimba-boomba-look")
 	DatabaseDSN = ""
+	UseTLS      = false
+	CertFile    = ""
+	KeyFile     = ""
 )
 
 func Parse() {
@@ -19,6 +23,9 @@ func Parse() {
 	flag.StringVar(&BaseURL, "b", BaseURL, "base URL for shorten URL response")
 	flag.StringVar(&PersistFile, "f", PersistFile, "file to store shorten URLs")
 	flag.StringVar(&DatabaseDSN, "d", DatabaseDSN, "connection string to database")
+	flag.BoolVar(&UseTLS, "s", false, "use TLS for server")
+	flag.StringVar(&CertFile, "certfile", "cert.pem", "certificate PEM file")
+	flag.StringVar(&KeyFile, "keyfile", "key.pem", "key PEM file")
 
 	flag.Parse()
 
@@ -33,6 +40,18 @@ func Parse() {
 	}
 	if val := os.Getenv("DATABASE_DSN"); val != "" {
 		DatabaseDSN = val
+	}
+	if val := os.Getenv("ENABLE_HTTPS"); val != "" {
+		parsedVal, err := strconv.ParseBool(val)
+		if err == nil {
+			UseTLS = parsedVal
+		}
+	}
+	if val := os.Getenv("CERT_FILE"); val != "" {
+		CertFile = val
+	}
+	if val := os.Getenv("KEY_FILE"); val != "" {
+		KeyFile = val
 	}
 
 	BaseURL = strings.TrimRight(BaseURL, "/")

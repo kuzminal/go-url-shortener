@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
@@ -9,6 +10,7 @@ import (
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/stdlib"
+	"log"
 	"net/http"
 	"os"
 	"text/template"
@@ -64,7 +66,28 @@ func run() error {
 
 	instance := app.NewInstance(config.BaseURL, storage)
 
+	if config.UseTLS {
+		return runTLS(instance, config.CertFile, config.KeyFile)
+	}
+
 	return http.ListenAndServe(config.RunPort, newRouter(instance))
+}
+
+func runTLS(instance *app.Instance, certFile string, keyFile string) error {
+	err := config.MakeKeys(keyFile, certFile)
+	if err != nil {
+		return err
+	}
+	srv := &http.Server{
+		Addr:    config.RunPort,
+		Handler: newRouter(instance),
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS13,
+		},
+	}
+
+	log.Printf("Starting server with TLS on %s", config.RunPort)
+	return srv.ListenAndServeTLS(certFile, keyFile)
 }
 
 func newStore(ctx context.Context) (storage store.AuthStore, err error) {
