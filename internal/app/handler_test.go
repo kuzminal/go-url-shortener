@@ -147,7 +147,7 @@ func Test_userURLs(t *testing.T) {
 		{
 			name:           "no_urls",
 			ctx:            auth.Context(context.Background(), uuid.Must(uuid.NewV4())),
-			expectedStatus: http.StatusNoContent,
+			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   nil,
 		},
 		{
