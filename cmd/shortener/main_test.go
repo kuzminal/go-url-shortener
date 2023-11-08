@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/testcontainers/testcontainers-go"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -21,7 +22,29 @@ import (
 
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+var pgContainer *postgres.PostgresContainer
+
+func CreatePostgresContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
+	pgContainer, err := postgres.RunContainer(ctx,
+		testcontainers.WithImage("postgres:15.3-alpine"),
+		//postgres.WithInitScripts(filepath.Join("..", "testdata", "init-db.sql")),
+		postgres.WithDatabase("postgres"),
+		postgres.WithUsername("postgres"),
+		postgres.WithPassword("password"),
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2).WithStartupTimeout(5*time.Second)),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return pgContainer, err
+}
 
 func TestMain(m *testing.M) {
 	config.Parse()
@@ -31,7 +54,10 @@ func TestMain(m *testing.M) {
 			panic(err)
 		}
 	}()
-	os.Exit(m.Run())
+	pgContainer, _ = CreatePostgresContainer(context.Background())
+	code := m.Run()
+	pgContainer.Terminate(context.Background())
+	os.Exit(code)
 }
 
 func Test_run(t *testing.T) {
@@ -236,7 +262,8 @@ func Test_newStore(t *testing.T) {
 	})
 
 	t.Run("create pg store", func(t *testing.T) {
-		config.DatabaseDSN = "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
+		connStr, _ := pgContainer.ConnectionString(context.Background(), "sslmode=disable")
+		config.DatabaseDSN = connStr
 		store, err := newStore(context.Background())
 		require.NoError(t, err)
 		require.NotNil(t, store)
