@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// Параметры запуска приложения
 var (
 	RunPort     = ":8080"                                    // RunPort порт для запуска приложения
 	BaseURL     = "http://localhost:8080/"                   // BaseURL базовый URL для приложения

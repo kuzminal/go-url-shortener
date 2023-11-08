@@ -9,8 +9,9 @@ import (
 	"github.com/gofrs/uuid"
 )
 
+// Пользовательские ошибки
 var (
-	ErrDeleted = errors.New("record deleted")
+	ErrDeleted = errors.New("record deleted") // ErrDeleted ошибка запись удалена
 )
 
 // Store описывает типовое хранилище ссылок
@@ -22,12 +23,14 @@ type Store interface {
 	Ping(ctx context.Context) error
 }
 
+// BatchStore хранилище для батчевого сохранения ссылок
 type BatchStore interface {
 	Store
 
 	SaveBatch(ctx context.Context, urls []*url.URL) (ids []string, err error)
 }
 
+// AuthStore хранилище для работы с пользователями
 type AuthStore interface {
 	BatchStore
 

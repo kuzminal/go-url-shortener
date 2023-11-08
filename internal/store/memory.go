@@ -13,6 +13,7 @@ import (
 var _ Store = (*InMemory)(nil)
 var _ AuthStore = (*InMemory)(nil)
 
+// InMemory
 type InMemory struct {
 	mu        sync.RWMutex
 	store     map[string]*url.URL
@@ -28,6 +29,7 @@ func NewInMemory() *InMemory {
 	}
 }
 
+// Save сохранить ссылку
 func (m *InMemory) Save(_ context.Context, u *url.URL) (id string, err error) {
 	m.mu.Lock()
 	id = fmt.Sprintf("%x", len(m.store))
@@ -36,6 +38,7 @@ func (m *InMemory) Save(_ context.Context, u *url.URL) (id string, err error) {
 	return id, nil
 }
 
+// SaveBatch сохранить ссылки
 func (m *InMemory) SaveBatch(_ context.Context, urls []*url.URL) (ids []string, err error) {
 	for _, u := range urls {
 		m.mu.Lock()
@@ -50,6 +53,7 @@ func (m *InMemory) SaveBatch(_ context.Context, urls []*url.URL) (ids []string, 
 	return
 }
 
+// Load загрузить ссылку по идентификатору
 func (m *InMemory) Load(_ context.Context, id string) (u *url.URL, err error) {
 	m.mu.RLock()
 	u, ok := m.store[id]
@@ -63,6 +67,7 @@ func (m *InMemory) Load(_ context.Context, id string) (u *url.URL, err error) {
 	return u, nil
 }
 
+// SaveUser созранить ссылку для указанного пользователя
 func (m *InMemory) SaveUser(ctx context.Context, uid uuid.UUID, u *url.URL) (id string, err error) {
 	id, err = m.Save(ctx, u)
 	if err != nil {
@@ -77,6 +82,7 @@ func (m *InMemory) SaveUser(ctx context.Context, uid uuid.UUID, u *url.URL) (id 
 	return id, nil
 }
 
+// SaveUserBatch созранить ссылки для указанного пользователя
 func (m *InMemory) SaveUserBatch(ctx context.Context, uid uuid.UUID, urls []*url.URL) (ids []string, err error) {
 	ids, err = m.SaveBatch(ctx, urls)
 	if err != nil {
@@ -93,6 +99,7 @@ func (m *InMemory) SaveUserBatch(ctx context.Context, uid uuid.UUID, urls []*url
 	return ids, nil
 }
 
+// LoadUser загрузить ссылку для указанного пользователя
 func (m *InMemory) LoadUser(ctx context.Context, uid uuid.UUID, id string) (u *url.URL, err error) {
 	urls, err := m.LoadUsers(ctx, uid)
 	if err != nil {
@@ -108,6 +115,7 @@ func (m *InMemory) LoadUser(ctx context.Context, uid uuid.UUID, id string) (u *u
 	return u, nil
 }
 
+// LoadUsers загрузить ссылки для указанного пользователя
 func (m *InMemory) LoadUsers(_ context.Context, uid uuid.UUID) (urls map[string]*url.URL, err error) {
 	m.mu.RLock()
 	urls, ok := m.userStore[uid.String()]
@@ -125,6 +133,7 @@ func (m *InMemory) LoadUsers(_ context.Context, uid uuid.UUID) (urls map[string]
 	return res, nil
 }
 
+// DeleteUsers удалить ссылки для указанного пользователя по их идентификаторам
 func (m *InMemory) DeleteUsers(_ context.Context, uid uuid.UUID, ids ...string) error {
 	userID := uid.String()
 	for _, id := range ids {
@@ -138,10 +147,12 @@ func (m *InMemory) DeleteUsers(_ context.Context, uid uuid.UUID, ids ...string) 
 	return nil
 }
 
+// Close закрыть хранилище
 func (m *InMemory) Close() error {
 	return nil
 }
 
+// Ping проверка хранилища
 func (m *InMemory) Ping(_ context.Context) error {
 	return nil
 }

@@ -15,10 +15,12 @@ import (
 var _ Store = (*RDB)(nil)
 var _ AuthStore = (*RDB)(nil)
 
+// RDB структура для представления БД
 type RDB struct {
 	db *sql.DB
 }
 
+// NewRDB функция для создания нового хранилища в ДБ
 func NewRDB(db *sql.DB) *RDB {
 	return &RDB{
 		db: db,
@@ -57,6 +59,7 @@ func (r *RDB) Bootstrap(ctx context.Context) error {
 	return nil
 }
 
+// Save функция сохранения ссылки в БД
 func (r *RDB) Save(ctx context.Context, url *url.URL) (id string, err error) {
 	query := `
 		INSERT INTO urls
@@ -84,6 +87,7 @@ func (r *RDB) Save(ctx context.Context, url *url.URL) (id string, err error) {
 	return
 }
 
+// SaveBatch сохранения массива ссылок в БД
 func (r *RDB) SaveBatch(ctx context.Context, urls []*url.URL) (ids []string, err error) {
 	var args []interface{}
 
@@ -130,6 +134,7 @@ func (r *RDB) SaveBatch(ctx context.Context, urls []*url.URL) (ids []string, err
 	return ids, nil
 }
 
+// Load загрузка ссылки по идентификатору
 func (r *RDB) Load(ctx context.Context, id string) (url *url.URL, err error) {
 	var rawURL string
 	var deletedAt *time.Time
@@ -149,6 +154,7 @@ func (r *RDB) Load(ctx context.Context, id string) (url *url.URL, err error) {
 	return url.Parse(rawURL)
 }
 
+// SaveUser сохранить ссылку для пользователя
 func (r *RDB) SaveUser(ctx context.Context, uid uuid.UUID, url *url.URL) (id string, err error) {
 	query := `
 		INSERT INTO urls
@@ -176,6 +182,7 @@ func (r *RDB) SaveUser(ctx context.Context, uid uuid.UUID, url *url.URL) (id str
 	return
 }
 
+// SaveUserBatch сохранить ссылки для пользователя
 func (r *RDB) SaveUserBatch(ctx context.Context, uid uuid.UUID, urls []*url.URL) (ids []string, err error) {
 	var args []interface{}
 	uidPos := len(urls) + 1
@@ -217,6 +224,7 @@ func (r *RDB) SaveUserBatch(ctx context.Context, uid uuid.UUID, urls []*url.URL)
 	return ids, nil
 }
 
+// LoadUser загрузить ссылку для пользователя по идентификатору
 func (r *RDB) LoadUser(ctx context.Context, uid uuid.UUID, id string) (url *url.URL, err error) {
 	var rawURL string
 	var deletedAt *time.Time
@@ -236,6 +244,7 @@ func (r *RDB) LoadUser(ctx context.Context, uid uuid.UUID, id string) (url *url.
 	return url.Parse(rawURL)
 }
 
+// LoadUsers загрузить ссылки для пользователя
 func (r *RDB) LoadUsers(ctx context.Context, uid uuid.UUID) (urls map[string]*url.URL, err error) {
 	query := `SELECT id, original_url FROM urls WHERE user_id = $1 AND deleted_at IS NULL;`
 
@@ -268,6 +277,7 @@ func (r *RDB) LoadUsers(ctx context.Context, uid uuid.UUID) (urls map[string]*ur
 	return res, nil
 }
 
+// DeleteUsers удалить ссылки для указанного пользователя
 func (r *RDB) DeleteUsers(ctx context.Context, uid uuid.UUID, ids ...string) error {
 	arr := new(pgtype.VarcharArray)
 	if err := arr.Set(ids); err != nil {
@@ -279,10 +289,12 @@ func (r *RDB) DeleteUsers(ctx context.Context, uid uuid.UUID, ids ...string) err
 	return err
 }
 
+// Ping проверка хранилища
 func (r *RDB) Ping(ctx context.Context) error {
 	return r.db.PingContext(ctx)
 }
 
+// Close закрыть хранилище
 func (r *RDB) Close() error {
 	return r.db.Close()
 }
