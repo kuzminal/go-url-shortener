@@ -205,7 +205,7 @@ func (i *Instance) BatchRemoveAPIHandler(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	uid := auth.UIDFromContext(ctx)
 	if uid == nil {
-		w.WriteHeader(http.StatusAccepted)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 

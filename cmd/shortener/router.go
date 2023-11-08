@@ -64,11 +64,8 @@ func authMiddleware(h http.Handler) http.Handler {
 		}
 		// generate new uid if failed to obtain existing
 		if uid == nil {
-			/*userID := ensureRandom()
-			uid = &userID*/
-			w.WriteHeader(http.StatusUnauthorized)
-			_, _ = w.Write([]byte("cannot find user"))
-			return
+			userID := ensureRandom()
+			uid = &userID
 		}
 
 		// set new auth cookie in case of absence or decode error
