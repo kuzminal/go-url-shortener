@@ -147,9 +147,7 @@ func Test_run(t *testing.T) {
 				resp, err := http.DefaultTransport.RoundTrip(r)
 				require.NoError(t, err)
 
-				defer func(Body io.ReadCloser) {
-					_ = Body.Close()
-				}(resp.Body)
+				defer resp.Body.Close()
 
 				assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
 				assert.Equal(t, targetURL, resp.Header.Get("Location"))

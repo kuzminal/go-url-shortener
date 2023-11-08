@@ -62,18 +62,18 @@ func TestRDB_Save(t *testing.T) {
 	t.Run("Save url into PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
 		require.NoError(t, err)
-		rawUrl, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
-		userId, err := store.SaveUser(context.Background(), user, rawUrl)
+		rawURL, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
+		userID, err := store.SaveUser(context.Background(), user, rawURL)
 		require.NoError(t, err)
-		require.NotEmpty(t, userId)
+		require.NotEmpty(t, userID)
 	})
 	t.Run("Save url into PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
 		require.NoError(t, err)
-		rawUrl, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
-		urlId, err := store.Save(context.Background(), rawUrl)
+		rawURL, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
+		urlID, err := store.Save(context.Background(), rawURL)
 		require.NoError(t, err)
-		require.NotEmpty(t, urlId)
+		require.NotEmpty(t, urlID)
 	})
 }
 
@@ -81,13 +81,13 @@ func TestRDB_Load(t *testing.T) {
 	t.Run("Delete users from PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
 		require.NoError(t, err)
-		rawUrl, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
-		urlId, err := store.SaveUser(context.Background(), user, rawUrl)
+		rawURL, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
+		urlId, err := store.SaveUser(context.Background(), user, rawURL)
 		require.NoError(t, err)
-		urlFromDb, err := store.Load(context.Background(), urlId)
+		urlFromDB, err := store.Load(context.Background(), urlId)
 		require.NoError(t, err)
 		require.NotEmpty(t, urlId)
-		require.Equal(t, rawUrl, urlFromDb)
+		require.Equal(t, rawURL, urlFromDB)
 	})
 }
 
@@ -95,14 +95,14 @@ func TestRDB_LoadUser(t *testing.T) {
 	t.Run("Delete users from PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
 		require.NoError(t, err)
-		rawUrl, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
+		rawURL, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
 		require.NoError(t, err)
-		urlId, err := store.SaveUser(context.Background(), user, rawUrl)
+		urlId, err := store.SaveUser(context.Background(), user, rawURL)
 		require.NoError(t, err)
-		urlFromDb, err := store.LoadUser(context.Background(), user, urlId)
+		urlFromDB, err := store.LoadUser(context.Background(), user, urlId)
 		require.NoError(t, err)
 		require.NotEmpty(t, urlId)
-		require.Equal(t, rawUrl, urlFromDb)
+		require.Equal(t, rawURL, urlFromDB)
 	})
 }
 
@@ -110,12 +110,12 @@ func TestRDB_DeleteUsers(t *testing.T) {
 	t.Run("Delete users from PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
 		require.NoError(t, err)
-		rawUrl, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
-		urlId, err := store.SaveUser(context.Background(), user, rawUrl)
+		rawURL, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
+		urlID, err := store.SaveUser(context.Background(), user, rawURL)
 		require.NoError(t, err)
-		err = store.DeleteUsers(context.Background(), user, urlId)
+		err = store.DeleteUsers(context.Background(), user, urlID)
 		require.NoError(t, err)
-		require.NotEmpty(t, urlId)
+		require.NotEmpty(t, urlID)
 	})
 }
 
