@@ -1,3 +1,4 @@
+// Package store содержит описание и реализацию хранилища ссылок
 package store
 
 import (
@@ -13,6 +14,7 @@ var (
 	ErrDeleted = errors.New("record deleted")
 )
 
+// Store описывает типовое хранилище ссылок
 type Store interface {
 	io.Closer
 

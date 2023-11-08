@@ -1,3 +1,4 @@
+// Package auth содержит логику работе с пользователями и контекстом аутентификации.
 package auth
 
 import (
@@ -14,6 +15,7 @@ import (
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 )
 
+// EncodeUID шифрует идентификатор пользователя.
 func EncodeUID(uid uuid.UUID) ([]byte, error) {
 	c, err := aes.NewCipher(config.AuthSecret)
 	if err != nil {
@@ -34,6 +36,7 @@ func EncodeUID(uid uuid.UUID) ([]byte, error) {
 	return cyphertext, nil
 }
 
+// EncodeUIDToHex шифрует идентификатор пользователя и возарвщает его в HEX-представлении.
 func EncodeUIDToHex(uid uuid.UUID) (string, error) {
 	b, err := EncodeUID(uid)
 	if err != nil {
@@ -42,6 +45,7 @@ func EncodeUIDToHex(uid uuid.UUID) (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
+// DecodeUID дешифрует идентификатор пользователя.
 func DecodeUID(ciphertext []byte) (*uuid.UUID, error) {
 	c, err := aes.NewCipher(config.AuthSecret)
 	if err != nil {
@@ -71,6 +75,7 @@ func DecodeUID(ciphertext []byte) (*uuid.UUID, error) {
 	return &uid, nil
 }
 
+// DecodeUIDFromHex извлекает из HEX-представления шифрованный идентификатор пользователя и дешифрует его.
 func DecodeUIDFromHex(s string) (*uuid.UUID, error) {
 	h, err := hex.DecodeString(s)
 	if err != nil {

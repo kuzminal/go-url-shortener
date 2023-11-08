@@ -1,3 +1,4 @@
+// Package config содержит логику по работе с конфигурацией приложения
 package config
 
 import (
@@ -7,13 +8,14 @@ import (
 )
 
 var (
-	RunPort     = ":8080"
+	RunPort     = ":8080" // порт для запуска приложения
 	BaseURL     = "http://localhost:8080/"
 	PersistFile = ""
 	AuthSecret  = []byte("ololo-trololo-shimba-boomba-look")
 	DatabaseDSN = ""
 )
 
+// Parse разбарает папаметры запуска приложения
 func Parse() {
 	flag.StringVar(&RunPort, "a", RunPort, "port to run server")
 	flag.StringVar(&BaseURL, "b", BaseURL, "base URL for shorten URL response")
