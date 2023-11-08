@@ -9,6 +9,7 @@ import (
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/stdlib"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"text/template"
@@ -69,6 +70,7 @@ func run() error {
 
 func newStore(ctx context.Context) (storage store.AuthStore, err error) {
 	if config.DatabaseDSN != "" {
+		logrus.Println("Create DB storage")
 		rdb, errs := newRDBStore(ctx, config.DatabaseDSN)
 		if errs != nil {
 			return nil, fmt.Errorf("cannot create RDB store: %w", err)
@@ -79,6 +81,7 @@ func newStore(ctx context.Context) (storage store.AuthStore, err error) {
 		return rdb, nil
 	}
 	if config.PersistFile != "" {
+		logrus.Println("Create file storage")
 		storage, err = store.NewFileStore(config.PersistFile)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create file store: %w", err)
