@@ -123,13 +123,7 @@ func (i *Instance) UserURLsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	urls, err := i.store.LoadUsers(ctx, *uid)
-	if
-	//errors.Is(err, store.ErrNotFound) ||
-	len(urls) == 0 {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-	if errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || len(urls) == 0 {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
