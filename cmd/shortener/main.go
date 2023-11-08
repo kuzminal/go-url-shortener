@@ -70,7 +70,7 @@ func run() error {
 
 func newStore(ctx context.Context) (storage store.AuthStore, err error) {
 	if config.DatabaseDSN != "" {
-		logrus.Println("Create DB storage")
+		logrus.Printf("Create DB storage %s", config.DatabaseDSN)
 		rdb, errs := newRDBStore(ctx, config.DatabaseDSN)
 		if errs != nil {
 			return nil, fmt.Errorf("cannot create RDB store: %w", err)
