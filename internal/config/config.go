@@ -7,13 +7,14 @@ import (
 )
 
 var (
-	RunPort     = ":8080"
-	BaseURL     = "http://localhost:8080/"
-	PersistFile = ""
-	AuthSecret  = []byte("ololo-trololo-shimba-boomba-look")
-	DatabaseDSN = ""
+	RunPort     = ":8080"                                    // RunPort порт для запуска приложения
+	BaseURL     = "http://localhost:8080/"                   // BaseURL базовый URL для приложения
+	PersistFile = ""                                         // PersistFile файл для хранилища
+	AuthSecret  = []byte("ololo-trololo-shimba-boomba-look") // AuthSecret сикрет для авторизации пользователя
+	DatabaseDSN = ""                                         // DatabaseDSN строка подключения к БД
 )
 
+// Parse разбарает папаметры запуска приложения
 func Parse() {
 	flag.StringVar(&RunPort, "a", RunPort, "port to run server")
 	flag.StringVar(&BaseURL, "b", BaseURL, "base URL for shorten URL response")

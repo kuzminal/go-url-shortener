@@ -16,6 +16,7 @@ import (
 	"time"
 )
 
+// BuildInfo структура для хранения информации о сборке приложения
 type BuildInfo struct {
 	BuildVersion string
 	BuildDate    string

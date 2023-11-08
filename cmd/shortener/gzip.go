@@ -19,14 +19,17 @@ func newCompressWriter(w http.ResponseWriter) *compressWriter {
 	}
 }
 
+// Header возвращает заголовок
 func (c *compressWriter) Header() http.Header {
 	return c.w.Header()
 }
 
+// Write записывает слайс из байт
 func (c *compressWriter) Write(p []byte) (int, error) {
 	return c.zw.Write(p)
 }
 
+// WriteHeader записывает заголовок
 func (c *compressWriter) WriteHeader(statusCode int) {
 	if statusCode < 300 {
 		c.w.Header().Set("Content-Encoding", "gzip")
@@ -34,6 +37,7 @@ func (c *compressWriter) WriteHeader(statusCode int) {
 	c.w.WriteHeader(statusCode)
 }
 
+// Close закрывает gzip.Writer
 func (c *compressWriter) Close() error {
 	return c.zw.Close()
 }
@@ -55,10 +59,12 @@ func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 	}, nil
 }
 
+// Read читает слайс байт
 func (c compressReader) Read(p []byte) (n int, err error) {
 	return c.zr.Read(p)
 }
 
+// Close закрывает gzip.Reader
 func (c *compressReader) Close() error {
 	if err := c.r.Close(); err != nil {
 		return err

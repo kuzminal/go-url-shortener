@@ -13,6 +13,7 @@ var (
 	ErrDeleted = errors.New("record deleted")
 )
 
+// Store описывает типовое хранилище ссылок
 type Store interface {
 	io.Closer
 
