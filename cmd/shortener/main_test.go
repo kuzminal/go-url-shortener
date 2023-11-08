@@ -81,9 +81,7 @@ func Test_run(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-				defer func(Body io.ReadCloser) {
-					_ = Body.Close()
-				}(resp.Body)
+				defer resp.Body.Close()
 
 				b, err := io.ReadAll(resp.Body)
 				require.NoError(t, err)
@@ -99,9 +97,7 @@ func Test_run(t *testing.T) {
 				resp, err := http.DefaultTransport.RoundTrip(r)
 				require.NoError(t, err)
 
-				defer func(Body io.ReadCloser) {
-					_ = Body.Close()
-				}(resp.Body)
+				defer resp.Body.Close()
 
 				assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
 				assert.Equal(t, targetURL, resp.Header.Get("Location"))
@@ -125,9 +121,7 @@ func Test_run(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-				defer func(Body io.ReadCloser) {
-					_ = Body.Close()
-				}(resp.Body)
+				defer resp.Body.Close()
 
 				b, err := io.ReadAll(resp.Body)
 				require.NoError(t, err)
@@ -171,9 +165,7 @@ func Test_run(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-		defer func(Body io.ReadCloser) {
-			_ = Body.Close()
-		}(resp.Body)
+		defer resp.Body.Close()
 
 		b, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
@@ -194,9 +186,7 @@ func Test_run(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode)
 
-		defer func(Body io.ReadCloser) {
-			_ = Body.Close()
-		}(resp.Body)
+		defer resp.Body.Close()
 
 		zr, err := gzip.NewReader(resp.Body)
 		require.NoError(t, err)
