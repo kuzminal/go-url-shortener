@@ -3,10 +3,11 @@ package store
 import (
 	"context"
 	"fmt"
-	"github.com/gofrs/uuid"
-	"github.com/stretchr/testify/assert"
 	"net/url"
 	"testing"
+
+	"github.com/gofrs/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 func BenchmarkInMemory_Save(b *testing.B) {

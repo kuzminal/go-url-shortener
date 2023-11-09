@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
-	"github.com/gofrs/uuid"
-	"github.com/stretchr/testify/assert"
 	"net/url"
 	"os"
 	"testing"
+
+	"github.com/gofrs/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFileStore_Close(t *testing.T) {

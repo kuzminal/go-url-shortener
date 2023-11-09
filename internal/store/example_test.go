@@ -2,8 +2,9 @@ package store_test
 
 import (
 	"context"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 	"net/url"
+
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 )
 
 func ExampleNewInMemory() {

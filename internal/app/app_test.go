@@ -3,10 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
-	"github.com/stretchr/testify/assert"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 )
 
 func TestNewInstance(t *testing.T) {

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/testcontainers/testcontainers-go"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +18,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"

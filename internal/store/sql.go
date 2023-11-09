@@ -20,7 +20,7 @@ type RDB struct {
 	db *sql.DB
 }
 
-// NewRDB функция для создания нового хранилища в ДБ
+// NewRDB функция для создания нового хранилища в БД
 func NewRDB(db *sql.DB) *RDB {
 	return &RDB{
 		db: db,
@@ -87,7 +87,7 @@ func (r *RDB) Save(ctx context.Context, url *url.URL) (id string, err error) {
 	return
 }
 
-// SaveBatch сохранения массива ссылок в БД
+// SaveBatch сохранение массива ссылок в БД
 func (r *RDB) SaveBatch(ctx context.Context, urls []*url.URL) (ids []string, err error) {
 	var args []interface{}
 

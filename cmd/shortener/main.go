@@ -4,16 +4,18 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
-	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/stdlib"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"text/template"
 	"time"
+
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/stdlib"
+	"github.com/sirupsen/logrus"
+
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 )
 
 // BuildInfo структура для хранения информации о сборке приложения
@@ -60,9 +62,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("cannot create storage: %w", err)
 	}
-	defer func(storage store.AuthStore) {
-		_ = storage.Close()
-	}(storage)
+	defer storage.Close()
 
 	instance := app.NewInstance(config.BaseURL, storage)
 
@@ -71,7 +71,7 @@ func run() error {
 
 func newStore(ctx context.Context) (storage store.AuthStore, err error) {
 	if config.DatabaseDSN != "" {
-		logrus.Printf("Create DB storage %s", config.DatabaseDSN)
+		logrus.Debug("Create DB storage")
 		rdb, errs := newRDBStore(ctx, config.DatabaseDSN)
 		if errs != nil {
 			return nil, fmt.Errorf("cannot create RDB store: %w", err)
@@ -82,7 +82,7 @@ func newStore(ctx context.Context) (storage store.AuthStore, err error) {
 		return rdb, nil
 	}
 	if config.PersistFile != "" {
-		logrus.Println("Create file storage")
+		logrus.Debug("Create file storage")
 		storage, err = store.NewFileStore(config.PersistFile)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create file store: %w", err)

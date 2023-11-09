@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sync"
 
 	"github.com/gofrs/uuid"
 )
@@ -25,6 +26,7 @@ type gobStore struct {
 
 // FileStore структура для файлового хранилища ссылок
 type FileStore struct {
+	mu      sync.RWMutex
 	store   *gobStore
 	enc     *gob.Encoder
 	persist *os.File
@@ -59,18 +61,22 @@ func NewFileStore(filepath string) (*FileStore, error) {
 
 // Save сохраняем ссылку в файловом хранилище.
 func (f *FileStore) Save(_ context.Context, u *url.URL) (id string, err error) {
+	f.mu.Lock()
 	id = fmt.Sprintf("%x", len(f.store.Hot))
 	f.store.Hot[id] = u
+	f.mu.Unlock()
 	return id, f.flush()
 }
 
 // SaveBatch сохраняем ссылки в файловом хранилище.
 func (f *FileStore) SaveBatch(_ context.Context, urls []*url.URL) (ids []string, err error) {
+	f.mu.Lock()
 	for _, u := range urls {
 		id := fmt.Sprintf("%x", len(f.store.Hot))
 		f.store.Hot[id] = u
 		ids = append(ids, id)
 	}
+	f.mu.Unlock()
 	if len(ids) != len(urls) {
 		return nil, errors.New("not all URLs have been saved")
 	}
@@ -79,7 +85,9 @@ func (f *FileStore) SaveBatch(_ context.Context, urls []*url.URL) (ids []string,
 
 // Load загружаем ссылки из файлового хранилища по идентификатору.
 func (f *FileStore) Load(_ context.Context, id string) (u *url.URL, err error) {
+	f.mu.RLock()
 	u, ok := f.store.Hot[id]
+	f.mu.RUnlock()
 	if !ok {
 		return nil, ErrNotFound
 	}
@@ -95,10 +103,12 @@ func (f *FileStore) SaveUser(ctx context.Context, uid uuid.UUID, u *url.URL) (id
 	if err != nil {
 		return "", fmt.Errorf("cannot save URL to shared store: %w", err)
 	}
+	f.mu.Lock()
 	if _, ok := f.store.UserHot[uid.String()]; !ok {
 		f.store.UserHot[uid.String()] = make(map[string]*url.URL)
 	}
 	f.store.UserHot[uid.String()][id] = u
+	f.mu.Unlock()
 	return id, f.flush()
 }
 
@@ -108,12 +118,14 @@ func (f *FileStore) SaveUserBatch(ctx context.Context, uid uuid.UUID, urls []*ur
 	if err != nil {
 		return nil, fmt.Errorf("cannot save URL to shared store: %w", err)
 	}
+	f.mu.Lock()
 	if _, ok := f.store.UserHot[uid.String()]; !ok {
 		f.store.UserHot[uid.String()] = make(map[string]*url.URL)
 	}
 	for i, id := range ids {
 		f.store.UserHot[uid.String()][id] = urls[i]
 	}
+	f.mu.Unlock()
 	return ids, f.flush()
 }
 
@@ -135,7 +147,9 @@ func (f *FileStore) LoadUser(ctx context.Context, uid uuid.UUID, id string) (u *
 
 // LoadUsers загружаем ссылки для пользователя по их идентификаторам
 func (f *FileStore) LoadUsers(_ context.Context, uid uuid.UUID) (urls map[string]*url.URL, err error) {
+	f.mu.RLock()
 	urls, ok := f.store.UserHot[uid.String()]
+	f.mu.RUnlock()
 	if !ok {
 		return nil, ErrNotFound
 	}
@@ -150,13 +164,15 @@ func (f *FileStore) LoadUsers(_ context.Context, uid uuid.UUID) (urls map[string
 
 // DeleteUsers удаляем ссылки для пользователя.
 func (f *FileStore) DeleteUsers(_ context.Context, uid uuid.UUID, ids ...string) error {
+	userID := uid.String()
+	f.mu.Lock()
 	for _, id := range ids {
-		userID := uid.String()
 		if _, ok := f.store.UserHot[userID]; ok {
 			f.store.Hot[id] = nil
 			f.store.UserHot[userID][id] = nil
 		}
 	}
+	f.mu.Unlock()
 	return f.flush()
 }
 

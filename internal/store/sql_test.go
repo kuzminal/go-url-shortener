@@ -3,15 +3,15 @@ package store
 import (
 	"context"
 	"database/sql"
-	"github.com/gofrs/uuid"
-	_ "github.com/lib/pq"
-	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
 	"net/url"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/gofrs/uuid"
+	_ "github.com/lib/pq"
+	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )

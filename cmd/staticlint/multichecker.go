@@ -21,14 +21,14 @@ import (
 	"honnef.co/go/tools/staticcheck"
 )
 
-// OsExitCheckAnalyzer проверка на наличие os.Exit в футнкции main в пакете main
+// OsExitCheckAnalyzer проверка на наличие os.Exit в функции main в пакете main.
 var OsExitCheckAnalyzer = &analysis.Analyzer{
 	Name: "errcheck",
 	Doc:  "check for unchecked errors",
 	Run:  run,
 }
 
-// run основная функция, которая вызывается при запуске линтера
+// run основная функция, которая вызывается при запуске линтера.
 func run(pass *analysis.Pass) (interface{}, error) {
 	expr := func(x *ast.FuncDecl) {
 		// проверяем, что выражение представляет собой вызов функции,
