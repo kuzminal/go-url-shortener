@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -13,6 +14,9 @@ var (
 	PersistFile = ""                                         // PersistFile файл для хранилища
 	AuthSecret  = []byte("ololo-trololo-shimba-boomba-look") // AuthSecret сикрет для авторизации пользователя
 	DatabaseDSN = ""                                         // DatabaseDSN строка подключения к БД
+	UseTLS      = false                                      // UseTLS флаг использования TLS
+	CertFile    = ""                                         // CertFile пусть к файлу с сертификатом
+	KeyFile     = ""                                         // KeyFile путь к файлу с приватным ключом
 )
 
 // Parse разбарает папаметры запуска приложения
@@ -21,6 +25,9 @@ func Parse() {
 	flag.StringVar(&BaseURL, "b", BaseURL, "base URL for shorten URL response")
 	flag.StringVar(&PersistFile, "f", PersistFile, "file to store shorten URLs")
 	flag.StringVar(&DatabaseDSN, "d", DatabaseDSN, "connection string to database")
+	flag.BoolVar(&UseTLS, "s", false, "use TLS for server")
+	flag.StringVar(&CertFile, "certfile", "cert.pem", "certificate PEM file")
+	flag.StringVar(&KeyFile, "keyfile", "key.pem", "key PEM file")
 
 	flag.Parse()
 
@@ -35,6 +42,18 @@ func Parse() {
 	}
 	if val := os.Getenv("DATABASE_DSN"); val != "" {
 		DatabaseDSN = val
+	}
+	if val := os.Getenv("ENABLE_HTTPS"); val != "" {
+		parsedVal, err := strconv.ParseBool(val)
+		if err == nil {
+			UseTLS = parsedVal
+		}
+	}
+	if val := os.Getenv("CERT_FILE"); val != "" {
+		CertFile = val
+	}
+	if val := os.Getenv("KEY_FILE"); val != "" {
+		KeyFile = val
 	}
 
 	BaseURL = strings.TrimRight(BaseURL, "/")
