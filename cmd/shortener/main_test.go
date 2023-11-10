@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,10 +18,33 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+var pgContainer *postgres.PostgresContainer
+
+func CreatePostgresContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
+	pgContainer, err := postgres.RunContainer(ctx,
+		testcontainers.WithImage("postgres:15.3-alpine"),
+		//postgres.WithInitScripts(filepath.Join("..", "testdata", "init-db.sql")),
+		postgres.WithDatabase("postgres"),
+		postgres.WithUsername("postgres"),
+		postgres.WithPassword("password"),
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2).WithStartupTimeout(5*time.Second)),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return pgContainer, err
+}
 
 func TestMain(m *testing.M) {
 	config.Parse()
@@ -30,7 +54,10 @@ func TestMain(m *testing.M) {
 			panic(err)
 		}
 	}()
-	os.Exit(m.Run())
+	pgContainer, _ = CreatePostgresContainer(context.Background())
+	code := m.Run()
+	pgContainer.Terminate(context.Background())
+	os.Exit(code)
 }
 
 func Test_run(t *testing.T) {
@@ -197,8 +224,8 @@ func TestEndToEnd(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, resp.StatusCode())
 	assert.NoError(t, func() error {
-		_, err := url.Parse(shortenURL)
-		return err
+		_, errs := url.Parse(shortenURL)
+		return errs
 	}())
 
 	// expand URL
@@ -212,4 +239,21 @@ func TestEndToEnd(t *testing.T) {
 
 	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode())
 	assert.Equal(t, originalURL, resp.Header().Get("Location"))
+}
+
+func Test_newStore(t *testing.T) {
+	t.Run("create file store", func(t *testing.T) {
+		config.PersistFile = "./store"
+		store, err := newStore(context.Background())
+		require.NoError(t, err)
+		require.NotNil(t, store)
+	})
+
+	t.Run("create pg store", func(t *testing.T) {
+		connStr, _ := pgContainer.ConnectionString(context.Background(), "sslmode=disable")
+		config.DatabaseDSN = connStr
+		store, err := newStore(context.Background())
+		require.NoError(t, err)
+		require.NotNil(t, store)
+	})
 }

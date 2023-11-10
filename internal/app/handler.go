@@ -16,6 +16,7 @@ import (
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
 )
 
+// ShortenHandler обработчик запроса на сокращение ссылки, который принимает в запросе ссылку в виде строки
 func (i *Instance) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -47,6 +48,7 @@ func (i *Instance) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(shortURL))
 }
 
+// ShortenAPIHandler обработчик запроса на сокращение ссылок, который принимает в запросе структуру ShortenRequest
 func (i *Instance) ShortenAPIHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.ShortenRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -87,6 +89,7 @@ func (i *Instance) ShortenAPIHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ExpandHandler обработчик, возвращающий ссылку из хранилища
 func (i *Instance) ExpandHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
@@ -113,6 +116,8 @@ func (i *Instance) ExpandHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// UserURLsHandler обработчик, который возвращает все ссылки пользователя.
+// Пользователь при этом берется из контекста запроса
 func (i *Instance) UserURLsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -124,7 +129,7 @@ func (i *Instance) UserURLsHandler(w http.ResponseWriter, r *http.Request) {
 
 	urls, err := i.store.LoadUsers(ctx, *uid)
 	if errors.Is(err, store.ErrNotFound) || len(urls) == 0 {
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	if err != nil {
@@ -144,6 +149,8 @@ func (i *Instance) UserURLsHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
+// BatchShortenAPIHandler пакетная обработка запросов на сокращение ссылок.
+// Принимает в запросе структуру BatchShortenRequest
 func (i *Instance) BatchShortenAPIHandler(w http.ResponseWriter, r *http.Request) {
 	var req []models.BatchShortenRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -161,8 +168,8 @@ func (i *Instance) BatchShortenAPIHandler(w http.ResponseWriter, r *http.Request
 
 	var urls []*url.URL
 	for _, pair := range req {
-		u, err := url.Parse(pair.OriginalURL)
-		if err != nil {
+		u, errs := url.Parse(pair.OriginalURL)
+		if errs != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			msg := fmt.Sprintf("Cannot parse given string as URL: %s", pair.OriginalURL)
 			_, _ = w.Write([]byte(msg))
@@ -201,11 +208,13 @@ func (i *Instance) BatchShortenAPIHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// BatchRemoveAPIHandler пакетное удаление пользовательских ссылок ссылок.
+// Пользователь определяется из контекста запроса.
 func (i *Instance) BatchRemoveAPIHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	uid := auth.UIDFromContext(ctx)
 	if uid == nil {
-		w.WriteHeader(http.StatusAccepted)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
@@ -233,6 +242,7 @@ func (i *Instance) BatchRemoveAPIHandler(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// PingHandler проверяет, что приложение в состоянии обработать запросы
 func (i *Instance) PingHandler(w http.ResponseWriter, r *http.Request) {
 	// ensure everything is okay
 	for j := 0; j < 3; j++ {

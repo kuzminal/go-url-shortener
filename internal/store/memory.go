@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"sync"
 
 	"github.com/gofrs/uuid"
 )
@@ -12,7 +13,9 @@ import (
 var _ Store = (*InMemory)(nil)
 var _ AuthStore = (*InMemory)(nil)
 
+// InMemory структура для хранения ссылок в памяти
 type InMemory struct {
+	mu        sync.RWMutex
 	store     map[string]*url.URL
 	userStore map[string]map[string]*url.URL
 }
@@ -20,31 +23,41 @@ type InMemory struct {
 // NewInMemory create new InMemory instance
 func NewInMemory() *InMemory {
 	return &InMemory{
+		mu:        sync.RWMutex{},
 		store:     make(map[string]*url.URL),
 		userStore: make(map[string]map[string]*url.URL),
 	}
 }
 
+// Save сохранить ссылку
 func (m *InMemory) Save(_ context.Context, u *url.URL) (id string, err error) {
+	m.mu.Lock()
 	id = fmt.Sprintf("%x", len(m.store))
 	m.store[id] = u
+	m.mu.Unlock()
 	return id, nil
 }
 
+// SaveBatch сохранить ссылки
 func (m *InMemory) SaveBatch(_ context.Context, urls []*url.URL) (ids []string, err error) {
+	m.mu.Lock()
 	for _, u := range urls {
 		id := fmt.Sprintf("%x", len(m.store))
 		m.store[id] = u
 		ids = append(ids, id)
 	}
+	m.mu.Unlock()
 	if len(ids) != len(urls) {
 		return nil, errors.New("not all URLs have been saved")
 	}
 	return
 }
 
+// Load загрузить ссылку по идентификатору
 func (m *InMemory) Load(_ context.Context, id string) (u *url.URL, err error) {
+	m.mu.RLock()
 	u, ok := m.store[id]
+	m.mu.RUnlock()
 	if !ok {
 		return nil, ErrNotFound
 	}
@@ -54,32 +67,39 @@ func (m *InMemory) Load(_ context.Context, id string) (u *url.URL, err error) {
 	return u, nil
 }
 
+// SaveUser сохранить ссылку для указанного пользователя
 func (m *InMemory) SaveUser(ctx context.Context, uid uuid.UUID, u *url.URL) (id string, err error) {
 	id, err = m.Save(ctx, u)
 	if err != nil {
 		return "", fmt.Errorf("cannot save URL to shared store: %w", err)
 	}
+	m.mu.Lock()
 	if _, ok := m.userStore[uid.String()]; !ok {
 		m.userStore[uid.String()] = make(map[string]*url.URL)
 	}
 	m.userStore[uid.String()][id] = u
+	m.mu.Unlock()
 	return id, nil
 }
 
+// SaveUserBatch сохранить ссылки для указанного пользователя
 func (m *InMemory) SaveUserBatch(ctx context.Context, uid uuid.UUID, urls []*url.URL) (ids []string, err error) {
 	ids, err = m.SaveBatch(ctx, urls)
 	if err != nil {
 		return nil, fmt.Errorf("cannot save URLs to shared store: %w", err)
 	}
+	m.mu.Lock()
 	if _, ok := m.userStore[uid.String()]; !ok {
 		m.userStore[uid.String()] = make(map[string]*url.URL)
 	}
 	for i, id := range ids {
 		m.userStore[uid.String()][id] = urls[i]
 	}
+	m.mu.Unlock()
 	return ids, nil
 }
 
+// LoadUser загрузить ссылку для указанного пользователя
 func (m *InMemory) LoadUser(ctx context.Context, uid uuid.UUID, id string) (u *url.URL, err error) {
 	urls, err := m.LoadUsers(ctx, uid)
 	if err != nil {
@@ -95,8 +115,11 @@ func (m *InMemory) LoadUser(ctx context.Context, uid uuid.UUID, id string) (u *u
 	return u, nil
 }
 
+// LoadUsers загрузить ссылки для указанного пользователя
 func (m *InMemory) LoadUsers(_ context.Context, uid uuid.UUID) (urls map[string]*url.URL, err error) {
+	m.mu.RLock()
 	urls, ok := m.userStore[uid.String()]
+	m.mu.RUnlock()
 	if !ok {
 		return nil, ErrNotFound
 	}
@@ -110,21 +133,26 @@ func (m *InMemory) LoadUsers(_ context.Context, uid uuid.UUID) (urls map[string]
 	return res, nil
 }
 
+// DeleteUsers удалить ссылки для указанного пользователя по их идентификаторам
 func (m *InMemory) DeleteUsers(_ context.Context, uid uuid.UUID, ids ...string) error {
+	userID := uid.String()
+	m.mu.Lock()
 	for _, id := range ids {
-		userID := uid.String()
 		if _, ok := m.userStore[userID]; ok {
 			m.store[id] = nil
 			m.userStore[userID][id] = nil
 		}
 	}
+	m.mu.Unlock()
 	return nil
 }
 
+// Close закрыть хранилище
 func (m *InMemory) Close() error {
 	return nil
 }
 
+// Ping проверка хранилища
 func (m *InMemory) Ping(_ context.Context) error {
 	return nil
 }
