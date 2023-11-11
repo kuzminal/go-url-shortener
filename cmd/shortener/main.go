@@ -5,18 +5,17 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
-	"net/http"
-	"os"
-	"text/template"
-	"time"
-
-	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/stdlib"
-	"github.com/sirupsen/logrus"
-
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/stdlib"
+	"github.com/sirupsen/logrus"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"text/template"
 )
 
 // BuildInfo структура для хранения информации о сборке приложения
@@ -36,6 +35,9 @@ Build commit: {{if .BuildCommit}}{{.BuildCommit}}{{else}}N/A{{end}}
 `
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
+
 	bi := BuildInfo{
 		BuildVersion: buildVersion,
 		BuildDate:    buildDate,
@@ -50,13 +52,13 @@ func main() {
 
 	config.Parse()
 
-	if err := run(); err != nil {
+	if err := run(ctx); err != nil {
 		panic("unexpected error: " + err.Error())
 	}
 }
 
-func run() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func run(ctx context.Context) error {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), config.ShutdownTimeout)
 	defer cancel()
 
 	storage, err := newStore(ctx)
@@ -67,28 +69,54 @@ func run() error {
 
 	instance := app.NewInstance(config.BaseURL, storage)
 
-	if config.UseTLS {
-		return runTLS(instance, config.CertFile, config.KeyFile)
-	}
-
-	return http.ListenAndServe(config.RunPort, newRouter(instance))
-}
-
-func runTLS(instance *app.Instance, certFile string, keyFile string) error {
-	err := config.MakeKeys(keyFile, certFile)
-	if err != nil {
-		return err
-	}
 	srv := &http.Server{
 		Addr:    config.RunPort,
 		Handler: newRouter(instance),
-		TLSConfig: &tls.Config{
-			MinVersion: tls.VersionTLS13,
-		},
 	}
 
-	logrus.Infof("Starting server with TLS on %s", config.RunPort)
-	return srv.ListenAndServeTLS(certFile, keyFile)
+	if config.UseTLS {
+		err := config.MakeKeys(config.CertFile, config.KeyFile)
+		if err != nil {
+			return err
+		}
+		srv.TLSConfig = &tls.Config{
+			MinVersion: tls.VersionTLS13,
+		}
+		go func() {
+			if err := srv.ListenAndServeTLS(config.CertFile, config.KeyFile); err != nil && err != http.ErrServerClosed {
+				logrus.Fatalf("listen and serve: %v", err)
+			}
+		}()
+	} else {
+		go func() {
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logrus.Fatalf("listen and serve: %v", err)
+			}
+		}()
+	}
+
+	logrus.Infof("listening on %s", config.RunPort)
+
+	<-ctx.Done()
+
+	logrus.Info("shutting down server gracefully")
+	idleConnectionsClosed := make(chan struct{}, 1)
+
+	go func() {
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			logrus.Errorf("shutdown: %v", err)
+		}
+		close(idleConnectionsClosed)
+	}()
+
+	select {
+	case <-shutdownCtx.Done():
+		return fmt.Errorf("server shutdown: %w", ctx.Err())
+	case <-idleConnectionsClosed:
+		logrus.Info("finished")
+	}
+
+	return nil
 }
 
 func newStore(ctx context.Context) (storage store.AuthStore, err error) {

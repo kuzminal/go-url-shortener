@@ -6,30 +6,33 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Параметры запуска приложения
 var (
-	RunPort     = ":8080"                                    // RunPort порт для запуска приложения
-	BaseURL     = "http://localhost:8080/"                   // BaseURL базовый URL для приложения
-	PersistFile = ""                                         // PersistFile файл для хранилища
-	AuthSecret  = []byte("ololo-trololo-shimba-boomba-look") // AuthSecret сикрет для авторизации пользователя
-	DatabaseDSN = ""                                         // DatabaseDSN строка подключения к БД
-	UseTLS      = false                                      // UseTLS флаг использования TLS
-	CertFile    = ""                                         // CertFile пусть к файлу с сертификатом
-	KeyFile     = ""                                         // KeyFile путь к файлу с приватным ключом
-	ConfigFile  = ""                                         // ConfigFile путь к файлу с конфигурацией приложения
+	RunPort         = ":8080"                                    // RunPort порт для запуска приложения
+	BaseURL         = "http://localhost" + RunPort               // BaseURL базовый URL для приложения
+	PersistFile     = ""                                         // PersistFile файл для хранилища
+	AuthSecret      = []byte("ololo-trololo-shimba-boomba-look") // AuthSecret сикрет для авторизации пользователя
+	DatabaseDSN     = ""                                         // DatabaseDSN строка подключения к БД
+	UseTLS          = false                                      // UseTLS флаг использования TLS
+	CertFile        = ""                                         // CertFile пусть к файлу с сертификатом
+	KeyFile         = ""                                         // KeyFile путь к файлу с приватным ключом
+	ConfigFile      = ""                                         // ConfigFile путь к файлу с конфигурацией приложения
+	ShutdownTimeout = 10 * time.Second                           // ShutdownTimeout время ожидания для graceful shutdown
 )
 
 // AppConfig структура для конфигурации приложения
 type AppConfig struct {
-	RunPort     string `json:"run_port"`     // RunPort порт для запуска приложения
-	BaseURL     string `json:"base_url"`     // BaseURL базовый URL для приложения
-	PersistFile string `json:"persist_file"` // PersistFile файл для хранилища
-	DatabaseDSN string `json:"database_dsn"` // DatabaseDSN строка подключения к БД
-	UseTLS      bool   `json:"use_tls"`      // UseTLS флаг использования TLS
-	CertFile    string `json:"cert_file"`    // CertFile пусть к файлу с сертификатом
-	KeyFile     string `json:"key_file"`     // KeyFile путь к файлу с приватным ключом
+	RunPort         string `json:"run_port"`         // RunPort порт для запуска приложения
+	BaseURL         string `json:"base_url"`         // BaseURL базовый URL для приложения
+	PersistFile     string `json:"persist_file"`     // PersistFile файл для хранилища
+	DatabaseDSN     string `json:"database_dsn"`     // DatabaseDSN строка подключения к БД
+	UseTLS          bool   `json:"use_tls"`          // UseTLS флаг использования TLS
+	CertFile        string `json:"cert_file"`        // CertFile пусть к файлу с сертификатом
+	KeyFile         string `json:"key_file"`         // KeyFile путь к файлу с приватным ключом
+	ShutdownTimeout int    `json:"shutdown_timeout"` // ShutdownTimeout время ожидания для graceful shutdown
 }
 
 // Parse разбарает папаметры запуска приложения
@@ -42,6 +45,7 @@ func Parse() {
 	flag.StringVar(&CertFile, "certfile", "cert.pem", "certificate PEM file")
 	flag.StringVar(&KeyFile, "keyfile", "key.pem", "key PEM file")
 	flag.StringVar(&ConfigFile, "config", ConfigFile, "path to config file")
+	flag.DurationVar(&ShutdownTimeout, "t", ShutdownTimeout, "graceful shutdown timeout")
 
 	flag.Parse()
 
@@ -71,6 +75,12 @@ func Parse() {
 	}
 	if val := os.Getenv("CONFIG"); val != "" {
 		ConfigFile = val
+	}
+	if val := os.Getenv("TIMEOUT"); val != "" {
+		timeout, err := strconv.Atoi(val)
+		if err == nil {
+			ShutdownTimeout = time.Duration(timeout) * time.Second
+		}
 	}
 
 	BaseURL = strings.TrimRight(BaseURL, "/")

@@ -14,7 +14,7 @@ import (
 )
 
 // MakeKeys функция генерации ключей для TLS
-func MakeKeys(pathToPrivateKey string, pathToCert string) error {
+func MakeKeys(pathToCert string, pathToPrivateKey string) error {
 	cert := &x509.Certificate{
 		SerialNumber: big.NewInt(1658),
 		Subject: pkix.Name{
