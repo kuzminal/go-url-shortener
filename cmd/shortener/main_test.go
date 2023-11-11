@@ -49,7 +49,7 @@ func CreatePostgresContainer(ctx context.Context) (*postgres.PostgresContainer, 
 func TestMain(m *testing.M) {
 	config.Parse()
 	go func() {
-		err := run()
+		err := run(context.Background())
 		if err != nil {
 			panic(err)
 		}
