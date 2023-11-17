@@ -58,9 +58,6 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), config.ShutdownTimeout)
-	defer cancel()
-
 	storage, err := newStore(ctx)
 	if err != nil {
 		return fmt.Errorf("cannot create storage: %w", err)
@@ -101,6 +98,9 @@ func run(ctx context.Context) error {
 
 	logrus.Info("shutting down server gracefully")
 	idleConnectionsClosed := make(chan struct{}, 1)
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), config.ShutdownTimeout)
+	defer cancel()
 
 	go func() {
 		if err := srv.Shutdown(shutdownCtx); err != nil {

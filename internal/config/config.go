@@ -48,6 +48,12 @@ func Parse() {
 	flag.DurationVar(&ShutdownTimeout, "t", ShutdownTimeout, "graceful shutdown timeout")
 
 	flag.Parse()
+	if ConfigFile != "" {
+		err := ParseJSON()
+		if err != nil {
+			return
+		}
+	}
 
 	if val := os.Getenv("SERVER_ADDRESS"); val != "" {
 		RunPort = val
@@ -84,12 +90,6 @@ func Parse() {
 	}
 
 	BaseURL = strings.TrimRight(BaseURL, "/")
-	if ConfigFile != "" {
-		err := ParseJSON()
-		if err != nil {
-			return
-		}
-	}
 }
 
 // ParseJSON парсинг файла конфигурации в структуру и присвоение переменным
@@ -103,12 +103,25 @@ func ParseJSON() error {
 	if err != nil {
 		return err
 	}
-	RunPort = cfg.RunPort
-	BaseURL = cfg.BaseURL
-	PersistFile = cfg.PersistFile
-	DatabaseDSN = cfg.DatabaseDSN
-	UseTLS = cfg.UseTLS
-	CertFile = cfg.CertFile
-	KeyFile = cfg.KeyFile
+	if RunPort == "" {
+		RunPort = cfg.RunPort
+	}
+	if BaseURL == "" {
+		BaseURL = cfg.BaseURL
+	}
+	if PersistFile == "" {
+		PersistFile = cfg.PersistFile
+	}
+	if DatabaseDSN == "" {
+		DatabaseDSN = cfg.DatabaseDSN
+	}
+
+	if CertFile == "" {
+		CertFile = cfg.CertFile
+	}
+	if KeyFile == "" {
+		KeyFile = cfg.KeyFile
+	}
+
 	return nil
 }
