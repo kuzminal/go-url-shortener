@@ -1,6 +1,8 @@
 // Package models содержит структуры, которые используются для передачи в API.
 package models
 
+import "github.com/gofrs/uuid"
+
 // ShortenRequest запрос на сокращение ссылки.
 //
 // Используется в запросе, например, так:
@@ -34,4 +36,10 @@ type BatchShortenRequest struct {
 type BatchShortenResponse struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
+}
+
+// BatchRemoveRequest структура для пакетного удаления ссылок
+type BatchRemoveRequest struct {
+	Uid uuid.UUID
+	Ids []string
 }

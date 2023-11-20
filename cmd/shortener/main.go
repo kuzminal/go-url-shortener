@@ -8,6 +8,7 @@ import (
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/stdlib"
 	"github.com/sirupsen/logrus"
@@ -16,6 +17,7 @@ import (
 	"os/signal"
 	"syscall"
 	"text/template"
+	"time"
 )
 
 // BuildInfo структура для хранения информации о сборке приложения
@@ -63,9 +65,24 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("cannot create storage: %w", err)
 	}
 	defer storage.Close()
-
-	instance := app.NewInstance(config.BaseURL, storage)
-
+	removeChan := make(chan models.BatchRemoveRequest)
+	semaphore := make(chan struct{}, 5)
+	instance := app.NewInstance(config.BaseURL, storage, removeChan)
+	go func() {
+		for {
+			select {
+			case removeRequest := <-removeChan:
+				semaphore <- struct{}{}
+				go func() {
+					err := storage.DeleteUsers(ctx, removeRequest.Uid, removeRequest.Ids...)
+					if err != nil {
+						logrus.Errorf("Couldn't delete urls for user %s", removeRequest.Uid.String())
+					}
+					<-semaphore
+				}()
+			}
+		}
+	}()
 	srv := &http.Server{
 		Addr:    config.RunPort,
 		Handler: newRouter(instance),
@@ -109,14 +126,20 @@ func run(ctx context.Context) error {
 		close(idleConnectionsClosed)
 	}()
 
-	select {
-	case <-shutdownCtx.Done():
-		return fmt.Errorf("server shutdown: %w", ctx.Err())
-	case <-idleConnectionsClosed:
-		logrus.Info("finished")
+	for {
+		select {
+		case <-shutdownCtx.Done():
+			return fmt.Errorf("server shutdown: %w", ctx.Err())
+		default:
+			_, ok := <-idleConnectionsClosed
+			if !ok && len(semaphore) == 0 {
+				logrus.Println("All processes done.")
+				return nil
+			}
+			logrus.Printf("Waiting for %v processes stop", len(semaphore))
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
-
-	return nil
 }
 
 func newStore(ctx context.Context) (storage store.AuthStore, err error) {
