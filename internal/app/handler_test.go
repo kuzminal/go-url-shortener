@@ -391,10 +391,10 @@ func TestInstance_BatchRemoveAPIHandler(t *testing.T) {
 	baseURL := "https://praktikum.yandex.ru/"
 	var urls []string
 	for i := 1; i < 100; i++ {
-		tempUrl := baseURL + strconv.Itoa(i)
-		u, _ := url.Parse(tempUrl)
+		tempURL := baseURL + strconv.Itoa(i)
+		u, _ := url.Parse(tempURL)
 		storage.SaveUser(context.Background(), uid, u)
-		urls = append(urls, tempUrl)
+		urls = append(urls, tempURL)
 	}
 
 	instance := &Instance{
