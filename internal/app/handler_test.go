@@ -388,10 +388,10 @@ func TestInstance_BatchShortenAPIHandler(t *testing.T) {
 func TestInstance_BatchRemoveAPIHandler(t *testing.T) {
 	uid := uuid.Must(uuid.NewV4())
 	storage := store.NewInMemory()
-	baseUrl := "https://praktikum.yandex.ru/"
+	baseURL := "https://praktikum.yandex.ru/"
 	var urls []string
 	for i := 1; i < 100; i++ {
-		tempUrl := baseUrl + strconv.Itoa(i)
+		tempUrl := baseURL + strconv.Itoa(i)
 		u, _ := url.Parse(tempUrl)
 		storage.SaveUser(context.Background(), uid, u)
 		urls = append(urls, tempUrl)

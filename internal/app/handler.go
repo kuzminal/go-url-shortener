@@ -233,7 +233,7 @@ func (i *Instance) BatchRemoveAPIHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	go func() {
-		i.removeChan <- models.BatchRemoveRequest{Uid: *uid, Ids: ids}
+		i.removeChan <- models.BatchRemoveRequest{UID: *uid, Ids: ids}
 	}()
 
 	w.WriteHeader(http.StatusAccepted)

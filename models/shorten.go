@@ -40,6 +40,6 @@ type BatchShortenResponse struct {
 
 // BatchRemoveRequest структура для пакетного удаления ссылок
 type BatchRemoveRequest struct {
-	Uid uuid.UUID
+	UID uuid.UUID
 	Ids []string
 }
