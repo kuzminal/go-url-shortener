@@ -111,7 +111,7 @@ func run(ctx context.Context) error {
 	<-ctx.Done()
 
 	logrus.Info("shutting down server gracefully")
-	idleConnectionsClosed := make(chan struct{}, 1)
+	idleConnectionsClosed := make(chan struct{})
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), config.ShutdownTimeout)
 	defer cancel()
@@ -126,10 +126,10 @@ func run(ctx context.Context) error {
 	for {
 		select {
 		case <-shutdownCtx.Done():
-			return fmt.Errorf("server shutdown: %w", ctx.Err())
+			return fmt.Errorf("server shutdown: %w", shutdownCtx.Err())
 		default:
-			_, ok := <-idleConnectionsClosed
-			if !ok && len(semaphore) == 0 {
+			<-idleConnectionsClosed
+			if len(semaphore) == 0 {
 				logrus.Println("All processes done.")
 				return nil
 			}
