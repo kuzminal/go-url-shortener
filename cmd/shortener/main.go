@@ -15,9 +15,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"text/template"
-	"time"
 )
 
 // BuildInfo структура для хранения информации о сборке приложения
@@ -66,17 +66,17 @@ func run(ctx context.Context) error {
 	}
 	defer storage.Close()
 	removeChan := make(chan models.BatchRemoveRequest)
-	semaphore := make(chan struct{}, 5)
 	instance := app.NewInstance(config.BaseURL, storage, removeChan)
+	wg := sync.WaitGroup{}
 	go func() {
 		for removeRequest := range removeChan {
-			semaphore <- struct{}{}
+			wg.Add(1)
 			go func(req models.BatchRemoveRequest) {
+				defer wg.Done()
 				err := storage.DeleteUsers(ctx, req.UID, req.Ids...)
 				if err != nil {
 					logrus.Errorf("Couldn't delete urls for user %s", req.UID.String())
 				}
-				<-semaphore
 			}(removeRequest)
 		}
 	}()
@@ -123,20 +123,16 @@ func run(ctx context.Context) error {
 		close(idleConnectionsClosed)
 	}()
 
-	for {
-		select {
-		case <-shutdownCtx.Done():
-			return fmt.Errorf("server shutdown: %w", shutdownCtx.Err())
-		default:
-			<-idleConnectionsClosed
-			if len(semaphore) == 0 {
-				logrus.Println("All processes done.")
-				return nil
-			}
-			logrus.Printf("Waiting for %v processes stop", len(semaphore))
-			time.Sleep(100 * time.Millisecond)
-		}
+	select {
+	case <-shutdownCtx.Done():
+		return fmt.Errorf("server shutdown: %w", shutdownCtx.Err())
+	case <-idleConnectionsClosed:
+		logrus.Println("HTTP server stopped.")
 	}
+
+	wg.Wait()
+	logrus.Println("All processes done.")
+	return nil
 }
 
 func newStore(ctx context.Context) (storage store.AuthStore, err error) {
