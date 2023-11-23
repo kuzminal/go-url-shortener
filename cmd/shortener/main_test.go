@@ -194,8 +194,8 @@ func Test_run(t *testing.T) {
 	cancel()
 	time.Sleep(200 * time.Millisecond)
 
-	timeOutContext, _ := context.WithTimeout(context.Background(), 1*time.Millisecond)
-
+	timeOutContext, cancelWithTimeOut := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer cancelWithTimeOut()
 	t.Run("graceful_shutdown_exceeded", func(t *testing.T) {
 		config.ShutdownTimeout = 1 * time.Nanosecond
 		err := run(timeOutContext)
