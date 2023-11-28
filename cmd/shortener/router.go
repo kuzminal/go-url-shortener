@@ -22,6 +22,7 @@ func newRouter(i *app.Instance) http.Handler {
 	r.Get("/{id}", i.ExpandHandler)
 	r.Get("/api/user/urls", i.UserURLsHandler)
 	r.Get("/ping", i.PingHandler)
+	r.Get("/api/internal/stats", i.StatisticsHandler)
 
 	return r
 }

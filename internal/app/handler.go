@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 
@@ -285,4 +287,26 @@ func (i *Instance) shortenBatch(ctx context.Context, rawURLs []*url.URL) (shortU
 	}
 
 	return shortURLs, nil
+}
+
+func (i *Instance) StatisticsHandler(w http.ResponseWriter, r *http.Request) {
+	ip := r.Header.Get("X-Real-IP")
+	_, ipNet, _ := net.ParseCIDR(config.TrustedSubnet)
+	if ipNet == nil || !ipNet.Contains(net.ParseIP(ip)) {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	var res models.Statistics
+	statUsers := i.store.Users(r.Context())
+	statUrls := i.store.Urls(r.Context())
+	res.Users = statUsers
+	res.Urls = statUrls
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	err := json.NewEncoder(w).Encode(res)
+	if err != nil {
+		fmt.Printf("cannot write response: %s", err)
+	}
 }

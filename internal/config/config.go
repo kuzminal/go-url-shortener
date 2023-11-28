@@ -21,6 +21,7 @@ var (
 	KeyFile         = ""                                         // KeyFile путь к файлу с приватным ключом
 	ConfigFile      = ""                                         // ConfigFile путь к файлу с конфигурацией приложения
 	ShutdownTimeout = 10 * time.Second                           // ShutdownTimeout время ожидания для graceful shutdown
+	TrustedSubnet   = ""                                         // TrustedSubnet маска подсети
 )
 
 // AppConfig структура для конфигурации приложения
@@ -33,6 +34,7 @@ type AppConfig struct {
 	CertFile        string `json:"cert_file"`        // CertFile пусть к файлу с сертификатом
 	KeyFile         string `json:"key_file"`         // KeyFile путь к файлу с приватным ключом
 	ShutdownTimeout int    `json:"shutdown_timeout"` // ShutdownTimeout время ожидания для graceful shutdown
+	TrustedSubnet   string `json:"trusted_subnet"`   // TrustedSubnet маска подсети
 }
 
 // Parse разбарает папаметры запуска приложения
@@ -45,7 +47,8 @@ func Parse() {
 	flag.StringVar(&CertFile, "certfile", "cert.pem", "certificate PEM file")
 	flag.StringVar(&KeyFile, "keyfile", "key.pem", "key PEM file")
 	flag.StringVar(&ConfigFile, "config", ConfigFile, "path to config file")
-	flag.DurationVar(&ShutdownTimeout, "t", ShutdownTimeout, "graceful shutdown timeout")
+	flag.DurationVar(&ShutdownTimeout, "gst", ShutdownTimeout, "graceful shutdown timeout")
+	flag.StringVar(&TrustedSubnet, "t", TrustedSubnet, "CIDR")
 
 	flag.Parse()
 	if ConfigFile != "" {
@@ -88,6 +91,9 @@ func Parse() {
 			ShutdownTimeout = time.Duration(timeout) * time.Second
 		}
 	}
+	if val := os.Getenv("TRUSTED_SUBNET"); val != "" {
+		TrustedSubnet = val
+	}
 
 	BaseURL = strings.TrimRight(BaseURL, "/")
 }
@@ -121,6 +127,9 @@ func ParseJSON() error {
 	}
 	if KeyFile == "" {
 		KeyFile = cfg.KeyFile
+	}
+	if TrustedSubnet == "" {
+		TrustedSubnet = cfg.TrustedSubnet
 	}
 
 	return nil

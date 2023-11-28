@@ -274,3 +274,43 @@ func TestNewInMemory(t *testing.T) {
 		})
 	}
 }
+
+func TestInMemory_Urls(t *testing.T) {
+	ctx := context.Background()
+	store := NewInMemory()
+	urls := make([]*url.URL, 10)
+	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
+	uuidToStore := uuid.Must(uuid.NewV4())
+	ids := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		urls[i] = urlToStore
+		ids[i] = fmt.Sprintf("%d", i)
+	}
+	_, _ = store.SaveUserBatch(ctx, uuidToStore, urls)
+	t.Run("urls statistic", func(t *testing.T) {
+
+		count := store.Urls(ctx)
+		assert.NotEmpty(t, count)
+		assert.Equal(t, 10, count)
+	})
+}
+
+func TestInMemory_Users(t *testing.T) {
+	ctx := context.Background()
+	store := NewInMemory()
+	urls := make([]*url.URL, 10)
+	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
+	uuidToStore := uuid.Must(uuid.NewV4())
+	ids := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		urls[i] = urlToStore
+		ids[i] = fmt.Sprintf("%d", i)
+	}
+	_, _ = store.SaveUserBatch(ctx, uuidToStore, urls)
+	t.Run("users statistic", func(t *testing.T) {
+
+		count := store.Users(ctx)
+		assert.NotEmpty(t, count)
+		assert.Equal(t, 1, count)
+	})
+}

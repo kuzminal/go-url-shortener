@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/gob"
 	"encoding/json"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -410,4 +411,62 @@ func TestInstance_BatchRemoveAPIHandler(t *testing.T) {
 	instance.BatchRemoveAPIHandler(w, r)
 	log.Println(w.Body)
 	assert.Equal(t, http.StatusAccepted, w.Code)
+}
+
+func TestInstance_StatisticsHandler(t *testing.T) {
+	uid := uuid.Must(uuid.NewV4())
+	storage := store.NewInMemory()
+	baseURL := "https://praktikum.yandex.ru/"
+	var urls []string
+	for i := 1; i < 100; i++ {
+		tempURL := baseURL + strconv.Itoa(i)
+		u, _ := url.Parse(tempURL)
+		storage.SaveUser(context.Background(), uid, u)
+		urls = append(urls, tempURL)
+	}
+	instance := &Instance{
+		baseURL: "http://localhost:8080",
+		store:   storage,
+	}
+
+	testCases := []struct {
+		name             string
+		instance         *Instance
+		ip               string
+		trustedSubnet    string
+		expectedStatus   int
+		expectedResponse models.Statistics
+	}{
+		{
+			name:             "forbiden",
+			instance:         instance,
+			ip:               "192.168.1.123",
+			trustedSubnet:    "10.0.0.105/8",
+			expectedStatus:   http.StatusForbidden,
+			expectedResponse: models.Statistics{},
+		},
+		{
+			name:             "ok",
+			instance:         instance,
+			ip:               "10.0.0.105",
+			trustedSubnet:    "10.0.0.105/8",
+			expectedStatus:   http.StatusOK,
+			expectedResponse: models.Statistics{Users: 1, Urls: 99},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest("GET", "http://localhost:8080/api/internal/stats", nil)
+			r = r.WithContext(auth.Context(context.Background(), uid))
+			config.TrustedSubnet = tc.trustedSubnet
+			r.Header.Add("X-Real-IP", tc.ip)
+			w := httptest.NewRecorder()
+			instance.StatisticsHandler(w, r)
+			var resp models.Statistics
+			_ = json.Unmarshal(w.Body.Bytes(), &resp)
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.Equal(t, tc.expectedResponse, resp)
+		})
+	}
 }
