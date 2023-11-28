@@ -289,6 +289,7 @@ func (i *Instance) shortenBatch(ctx context.Context, rawURLs []*url.URL) (shortU
 	return shortURLs, nil
 }
 
+// StatisticsHandler выдает статистику по пользователям и по ссылкам
 func (i *Instance) StatisticsHandler(w http.ResponseWriter, r *http.Request) {
 	ip := r.Header.Get("X-Real-IP")
 	_, ipNet, _ := net.ParseCIDR(config.TrustedSubnet)
