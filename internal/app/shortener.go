@@ -13,6 +13,7 @@ import (
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 )
 
+// Shorten обработчик сокращения ссылки
 func (i *Instance) Shorten(ctx context.Context, rawURL *url.URL) (shortURL string, err error) {
 	uid := auth.UIDFromContext(ctx)
 
@@ -29,6 +30,7 @@ func (i *Instance) Shorten(ctx context.Context, rawURL *url.URL) (shortURL strin
 	return fmt.Sprintf("%s/%s", i.BaseURL, id), err
 }
 
+// ShortenBatch пакетный обработчик сокращения ссылок
 func (i *Instance) ShortenBatch(ctx context.Context, rawURLs []*url.URL) (shortURLs []string, err error) {
 	uid := auth.UIDFromContext(ctx)
 
@@ -50,6 +52,7 @@ func (i *Instance) ShortenBatch(ctx context.Context, rawURLs []*url.URL) (shortU
 	return shortURLs, nil
 }
 
+// Statistics предсоатвляет статистику по ссылкам и пользователям
 func (i *Instance) Statistics(ctx context.Context, ip string) (models.Statistics, error) {
 	_, ipNet, _ := net.ParseCIDR(config.TrustedSubnet)
 	if ipNet == nil || !ipNet.Contains(net.ParseIP(ip)) {
@@ -64,6 +67,7 @@ func (i *Instance) Statistics(ctx context.Context, ip string) (models.Statistics
 	return res, nil
 }
 
+// LoadURL поиск ссылки в хранилище
 func (i *Instance) LoadURL(ctx context.Context, id string) (*url.URL, error) {
 	u, err := i.Store.Load(ctx, id)
 	if err != nil {
@@ -72,6 +76,7 @@ func (i *Instance) LoadURL(ctx context.Context, id string) (*url.URL, error) {
 	return u, nil
 }
 
+// LoadUsers загрузка ссылок пользователя
 func (i *Instance) LoadUsers(ctx context.Context) ([]models.URLResponse, error) {
 	uid := auth.UIDFromContext(ctx)
 	if uid == nil {
@@ -91,6 +96,7 @@ func (i *Instance) LoadUsers(ctx context.Context) ([]models.URLResponse, error) 
 	return resp, nil
 }
 
+// Ping проверка работоспособности приложения
 func (i *Instance) Ping(ctx context.Context) error {
 	for j := 0; j < 3; j++ {
 		if err := i.Store.Ping(ctx); err != nil {
@@ -100,6 +106,7 @@ func (i *Instance) Ping(ctx context.Context) error {
 	return nil
 }
 
+// BatchShorten пакетное соркащение ссылок
 func (i *Instance) BatchShorten(req []models.BatchShortenRequest, ctx context.Context) ([]models.BatchShortenResponse, error) {
 	var urls []*url.URL
 	for _, pair := range req {

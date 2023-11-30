@@ -18,11 +18,13 @@ import (
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/pkg/shortener"
 )
 
+// Server структура grpc сервера
 type Server struct {
 	shortener.UnimplementedShortenerServer
 	instance *app.Instance
 }
 
+// Shorten обработчик запроса на сокращение ссылок
 func (s *Server) Shorten(ctx context.Context, request *shortener.ShortenRequest) (*shortener.ShortenResponse, error) {
 	u, err := url.Parse(request.Url)
 	if err != nil {
@@ -36,6 +38,7 @@ func (s *Server) Shorten(ctx context.Context, request *shortener.ShortenRequest)
 	return &resp, nil
 }
 
+// BatchShorten пакетная обработка запросов на сокращение ссылок
 func (s *Server) BatchShorten(ctx context.Context, req *shortener.BatchShortenRequest) (*shortener.BatchShortenResponse, error) {
 	var batch []models.BatchShortenRequest
 	for _, r := range req.Batch {
@@ -67,6 +70,8 @@ func (s *Server) BatchShorten(ctx context.Context, req *shortener.BatchShortenRe
 		Result: resp,
 	}, nil
 }
+
+// BatchRemove пакетное удаление пользовательских ссылок ссылок
 func (s *Server) BatchRemove(_ context.Context, req *shortener.BatchRemoveRequest) (*emptypb.Empty, error) {
 	id, err := uuid.FromString(req.Uuid)
 	if err != nil {
@@ -77,6 +82,8 @@ func (s *Server) BatchRemove(_ context.Context, req *shortener.BatchRemoveReques
 	}()
 	return &emptypb.Empty{}, nil
 }
+
+// Statistics выдает статистику по пользователям и по ссылкам
 func (s *Server) Statistics(ctx context.Context, req *shortener.StatisticsRequest) (*shortener.StatisticsResponse, error) {
 	//  можно использовать для получения IP адреса
 	//p, _ := peer.FromContext(ctx)
@@ -86,6 +93,8 @@ func (s *Server) Statistics(ctx context.Context, req *shortener.StatisticsReques
 	}
 	return &shortener.StatisticsResponse{Urls: uint32(statistics.Urls), Users: uint32(statistics.Users)}, nil
 }
+
+// Expand обработчик, возвращающий ссылку из хранилища
 func (s *Server) Expand(ctx context.Context, req *shortener.UrlRequest) (*shortener.UrlResponse, error) {
 	loadURL, err := s.instance.LoadURL(ctx, req.Id)
 	if err != nil {
@@ -93,6 +102,8 @@ func (s *Server) Expand(ctx context.Context, req *shortener.UrlRequest) (*shorte
 	}
 	return &shortener.UrlResponse{OriginalUrl: loadURL.String()}, nil
 }
+
+// UserUrls список ссылок пользователя
 func (s *Server) UserUrls(ctx context.Context, req *shortener.UserUrlsRequest) (*shortener.UserUrlsResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	log.Println(md)
@@ -111,6 +122,8 @@ func (s *Server) UserUrls(ctx context.Context, req *shortener.UserUrlsRequest) (
 	}
 	return &shortener.UserUrlsResponse{Urls: urls}, nil
 }
+
+// Ping проверяет, что приложение в состоянии обработать запросы
 func (s *Server) Ping(ctx context.Context, empty *emptypb.Empty) (*emptypb.Empty, error) {
 	err := s.instance.Ping(ctx)
 	if err != nil {
@@ -119,6 +132,7 @@ func (s *Server) Ping(ctx context.Context, empty *emptypb.Empty) (*emptypb.Empty
 	return empty, nil
 }
 
+// NewShortenerServer создает экземпляр grpc сервера
 func NewShortenerServer(instance *app.Instance) *Server {
 	server := &Server{instance: instance}
 	return server

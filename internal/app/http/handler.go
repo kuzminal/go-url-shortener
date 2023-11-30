@@ -16,6 +16,7 @@ import (
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
 )
 
+// Handler структура для представления обработчика http запросов
 type Handler struct {
 	Instance *app.Instance
 }
