@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
+	grpc "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/grpc"
+	rest "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/http"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
@@ -67,6 +69,8 @@ func run(ctx context.Context) error {
 	defer storage.Close()
 	removeChan := make(chan models.BatchRemoveRequest)
 	instance := app.NewInstance(config.BaseURL, storage, removeChan)
+	restHandler := &rest.Handler{Instance: instance}
+	grpcServer := grpc.NewShortenerServer(instance)
 	wg := sync.WaitGroup{}
 	go func() {
 		for removeRequest := range removeChan {
@@ -82,7 +86,7 @@ func run(ctx context.Context) error {
 	}()
 	srv := &http.Server{
 		Addr:    config.RunPort,
-		Handler: newRouter(instance),
+		Handler: newRouter(restHandler),
 	}
 
 	if config.UseTLS {
@@ -117,9 +121,21 @@ func run(ctx context.Context) error {
 	defer cancel()
 
 	go func() {
-		if err := srv.Shutdown(shutdownCtx); err != nil {
-			logrus.Errorf("shutdown: %v", err)
-		}
+		var wait sync.WaitGroup
+		wait.Add(2)
+		go func() {
+			defer wait.Done()
+			if err := srv.Shutdown(shutdownCtx); err != nil {
+				logrus.Errorf("shutdown: %v", err)
+			}
+			logrus.Println("HTTP server stopped.")
+		}()
+		go func() {
+			defer wait.Done()
+			grpcServer.Server.GracefulStop()
+			logrus.Println("GRPC server stopped.")
+		}()
+		wait.Wait()
 		close(idleConnectionsClosed)
 	}()
 
@@ -127,7 +143,7 @@ func run(ctx context.Context) error {
 	case <-shutdownCtx.Done():
 		return fmt.Errorf("server shutdown: %w", shutdownCtx.Err())
 	case <-idleConnectionsClosed:
-		logrus.Println("HTTP server stopped.")
+		logrus.Println("servers stopped.")
 	}
 
 	wg.Wait()

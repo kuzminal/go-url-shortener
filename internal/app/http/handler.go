@@ -1,13 +1,11 @@
-package app
+package http
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 
@@ -18,8 +16,12 @@ import (
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
 )
 
+type Handler struct {
+	Instance *app.Instance
+}
+
 // ShortenHandler обработчик запроса на сокращение ссылки, который принимает в запросе ссылку в виде строки
-func (i *Instance) ShortenHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -34,7 +36,7 @@ func (i *Instance) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL, err := i.shorten(r.Context(), u)
+	shortURL, err := h.Instance.Shorten(r.Context(), u)
 	if err != nil && !errors.Is(err, store.ErrConflict) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(err.Error()))
@@ -51,7 +53,7 @@ func (i *Instance) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ShortenAPIHandler обработчик запроса на сокращение ссылок, который принимает в запросе структуру ShortenRequest
-func (i *Instance) ShortenAPIHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ShortenAPIHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.ShortenRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -67,7 +69,7 @@ func (i *Instance) ShortenAPIHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL, err := i.shorten(r.Context(), u)
+	shortURL, err := h.Instance.Shorten(r.Context(), u)
 	if err != nil && !errors.Is(err, store.ErrConflict) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(err.Error()))
@@ -92,7 +94,7 @@ func (i *Instance) ShortenAPIHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // ExpandHandler обработчик, возвращающий ссылку из хранилища
-func (i *Instance) ExpandHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ExpandHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -100,7 +102,7 @@ func (i *Instance) ExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	target, err := i.store.Load(r.Context(), id)
+	target, err := h.Instance.LoadUrl(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -120,16 +122,14 @@ func (i *Instance) ExpandHandler(w http.ResponseWriter, r *http.Request) {
 
 // UserURLsHandler обработчик, который возвращает все ссылки пользователя.
 // Пользователь при этом берется из контекста запроса
-func (i *Instance) UserURLsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UserURLsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	uid := auth.UIDFromContext(ctx)
-	if uid == nil {
+	urls, err := h.Instance.LoadUsers(ctx)
+	if errors.Is(err, app.ErrAuth) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
-
-	urls, err := i.store.LoadUsers(ctx, *uid)
 	if errors.Is(err, store.ErrNotFound) || len(urls) == 0 {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -139,21 +139,13 @@ func (i *Instance) UserURLsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var resp []models.URLResponse
-	for id, u := range urls {
-		resp = append(resp, models.URLResponse{
-			ShortURL:    i.baseURL + "/" + id,
-			OriginalURL: u.String(),
-		})
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(urls)
 }
 
 // BatchShortenAPIHandler пакетная обработка запросов на сокращение ссылок.
 // Принимает в запросе структуру BatchShortenRequest
-func (i *Instance) BatchShortenAPIHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) BatchShortenAPIHandler(w http.ResponseWriter, r *http.Request) {
 	var req []models.BatchShortenRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -168,43 +160,30 @@ func (i *Instance) BatchShortenAPIHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var urls []*url.URL
-	for _, pair := range req {
-		u, errs := url.Parse(pair.OriginalURL)
-		if errs != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			msg := fmt.Sprintf("Cannot parse given string as URL: %s", pair.OriginalURL)
-			_, _ = w.Write([]byte(msg))
-			return
-		}
-		urls = append(urls, u)
+	shorten, err := h.Instance.BatchShorten(req, r.Context())
+	if errors.Is(err, app.ErrParseUrl) {
+		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprint("Cannot parse given string as URL")
+		_, _ = w.Write([]byte(msg))
+		return
 	}
 
-	shortURLs, err := i.shortenBatch(r.Context(), urls)
+	if errors.Is(err, app.ErrUrlLength) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("invalid shorten URLs length"))
+		return
+	}
+
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	if len(shortURLs) != len(req) {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("invalid shorten URLs length"))
-		return
-	}
-
-	res := make([]models.BatchShortenResponse, 0, len(shortURLs))
-	for i, shortURL := range shortURLs {
-		res = append(res, models.BatchShortenResponse{
-			CorrelationID: req[i].CorrelationID,
-			ShortURL:      shortURL,
-		})
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	err = json.NewEncoder(w).Encode(res)
+	err = json.NewEncoder(w).Encode(shorten)
 	if err != nil {
 		fmt.Printf("cannot write response: %s", err)
 	}
@@ -212,7 +191,7 @@ func (i *Instance) BatchShortenAPIHandler(w http.ResponseWriter, r *http.Request
 
 // BatchRemoveAPIHandler пакетное удаление пользовательских ссылок ссылок.
 // Пользователь определяется из контекста запроса.
-func (i *Instance) BatchRemoveAPIHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) BatchRemoveAPIHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	uid := auth.UIDFromContext(ctx)
 	if uid == nil {
@@ -235,78 +214,35 @@ func (i *Instance) BatchRemoveAPIHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	go func() {
-		i.removeChan <- models.BatchRemoveRequest{UID: *uid, Ids: ids}
+		h.Instance.RemoveChan <- models.BatchRemoveRequest{UID: *uid, Ids: ids}
 	}()
 
 	w.WriteHeader(http.StatusAccepted)
 }
 
 // PingHandler проверяет, что приложение в состоянии обработать запросы
-func (i *Instance) PingHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {
 	// ensure everything is okay
-	for j := 0; j < 3; j++ {
-		if err := i.store.Ping(r.Context()); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-}
-
-func (i *Instance) shorten(ctx context.Context, rawURL *url.URL) (shortURL string, err error) {
-	uid := auth.UIDFromContext(ctx)
-
-	var id string
-	if uid != nil {
-		id, err = i.store.SaveUser(ctx, *uid, rawURL)
-	} else {
-		id, err = i.store.Save(ctx, rawURL)
-	}
-
-	if err != nil && !errors.Is(err, store.ErrConflict) {
-		return "", fmt.Errorf("cannot save URL to storage: %w", err)
-	}
-	return fmt.Sprintf("%s/%s", i.baseURL, id), err
-}
-
-func (i *Instance) shortenBatch(ctx context.Context, rawURLs []*url.URL) (shortURLs []string, err error) {
-	uid := auth.UIDFromContext(ctx)
-
-	var ids []string
-	if uid != nil {
-		ids, err = i.store.SaveUserBatch(ctx, *uid, rawURLs)
-	} else {
-		ids, err = i.store.SaveBatch(ctx, rawURLs)
-	}
-
+	err := h.Instance.Ping(r.Context())
 	if err != nil {
-		return nil, fmt.Errorf("cannot save URL to storage: %w", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-
-	for _, id := range ids {
-		shortURLs = append(shortURLs, fmt.Sprintf("%s/%s", i.baseURL, id))
-	}
-
-	return shortURLs, nil
 }
 
 // StatisticsHandler выдает статистику по пользователям и по ссылкам
-func (i *Instance) StatisticsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) StatisticsHandler(w http.ResponseWriter, r *http.Request) {
 	ip := r.Header.Get("X-Real-IP")
-	_, ipNet, _ := net.ParseCIDR(config.TrustedSubnet)
-	if ipNet == nil || !ipNet.Contains(net.ParseIP(ip)) {
+	stat, err := h.Instance.Statistics(r.Context(), ip)
+	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	var res models.Statistics
-	statUsers := i.store.Users(r.Context())
-	statUrls := i.store.Urls(r.Context())
-	res.Users = statUsers
-	res.Urls = statUrls
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	err := json.NewEncoder(w).Encode(res)
+	err = json.NewEncoder(w).Encode(stat)
 	if err != nil {
 		fmt.Printf("cannot write response: %s", err)
 	}

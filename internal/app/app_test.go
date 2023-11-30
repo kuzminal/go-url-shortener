@@ -41,6 +41,6 @@ func TestNewInstance(t *testing.T) {
 func ExampleNewInstance() {
 	instance := NewInstance("http://localhost:8080", store.NewInMemory(), make(chan models.BatchRemoveRequest))
 	parsedURL, _ := url.Parse("https://praktikum.yandex.ru/")
-	id, _ := instance.store.Save(context.Background(), parsedURL)
+	id, _ := instance.Store.Save(context.Background(), parsedURL)
 	fmt.Println(id)
 }

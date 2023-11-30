@@ -12,6 +12,7 @@ import (
 // Параметры запуска приложения
 var (
 	RunPort         = ":8080"                                    // RunPort порт для запуска приложения
+	GrpcPort        = ":4080"                                    // GrpcPort порт для запуска grpc сервера приложения
 	BaseURL         = "http://localhost" + RunPort               // BaseURL базовый URL для приложения
 	PersistFile     = ""                                         // PersistFile файл для хранилища
 	AuthSecret      = []byte("ololo-trololo-shimba-boomba-look") // AuthSecret сикрет для авторизации пользователя
@@ -27,6 +28,7 @@ var (
 // AppConfig структура для конфигурации приложения
 type AppConfig struct {
 	RunPort         string `json:"run_port"`         // RunPort порт для запуска приложения
+	GrpcPort        string `json:"grpc_port"`        // GrpcPort порт для запуска grpc сервера приложения
 	BaseURL         string `json:"base_url"`         // BaseURL базовый URL для приложения
 	PersistFile     string `json:"persist_file"`     // PersistFile файл для хранилища
 	DatabaseDSN     string `json:"database_dsn"`     // DatabaseDSN строка подключения к БД
@@ -49,6 +51,7 @@ func Parse() {
 	flag.StringVar(&ConfigFile, "config", ConfigFile, "path to config file")
 	flag.DurationVar(&ShutdownTimeout, "gst", ShutdownTimeout, "graceful shutdown timeout")
 	flag.StringVar(&TrustedSubnet, "t", TrustedSubnet, "CIDR")
+	flag.StringVar(&GrpcPort, "gp", GrpcPort, "port for grpc server")
 
 	flag.Parse()
 	if ConfigFile != "" {
@@ -60,6 +63,9 @@ func Parse() {
 
 	if val := os.Getenv("SERVER_ADDRESS"); val != "" {
 		RunPort = val
+	}
+	if val := os.Getenv("GRPC_ADDRESS"); val != "" {
+		GrpcPort = val
 	}
 	if val := os.Getenv("BASE_URL"); val != "" {
 		BaseURL = val
@@ -130,6 +136,9 @@ func ParseJSON() error {
 	}
 	if TrustedSubnet == "" {
 		TrustedSubnet = cfg.TrustedSubnet
+	}
+	if GrpcPort == "" {
+		GrpcPort = cfg.GrpcPort
 	}
 
 	return nil
