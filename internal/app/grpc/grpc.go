@@ -31,7 +31,7 @@ type Server struct {
 func (s *Server) Shorten(ctx context.Context, request *shortener.ShortenRequest) (*shortener.ShortenResponse, error) {
 	u, err := url.Parse(request.Url)
 	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, app.ErrParseUrl.Error())
+		return nil, status.Errorf(codes.InvalidArgument, app.ErrParseURL.Error())
 	}
 	shorten, err := s.instance.Shorten(ctx, u)
 	if err != nil {
@@ -52,11 +52,11 @@ func (s *Server) BatchShorten(ctx context.Context, req *shortener.BatchShortenRe
 	}
 
 	shorten, err := s.instance.BatchShorten(batch, ctx)
-	if errors.Is(err, app.ErrParseUrl) {
+	if errors.Is(err, app.ErrParseURL) {
 		return nil, status.Errorf(codes.InvalidArgument, "Cannot parse given string as URL")
 	}
 
-	if errors.Is(err, app.ErrUrlLength) {
+	if errors.Is(err, app.ErrURLLength) {
 		return nil, status.Errorf(codes.Internal, "invalid shorten URLs length")
 	}
 
@@ -92,11 +92,11 @@ func (s *Server) Statistics(ctx context.Context, req *shortener.StatisticsReques
 	return &shortener.StatisticsResponse{Urls: uint32(statistics.Urls), Users: uint32(statistics.Users)}, nil
 }
 func (s *Server) Expand(ctx context.Context, req *shortener.UrlRequest) (*shortener.UrlResponse, error) {
-	loadUrl, err := s.instance.LoadUrl(ctx, req.Id)
+	loadURL, err := s.instance.LoadURL(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
-	return &shortener.UrlResponse{OriginalUrl: loadUrl.String()}, nil
+	return &shortener.UrlResponse{OriginalUrl: loadURL.String()}, nil
 }
 func (s *Server) UserUrls(ctx context.Context, req *shortener.UserUrlsRequest) (*shortener.UserUrlsResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)

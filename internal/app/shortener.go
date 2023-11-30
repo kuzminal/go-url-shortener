@@ -64,7 +64,7 @@ func (i *Instance) Statistics(ctx context.Context, ip string) (models.Statistics
 	return res, nil
 }
 
-func (i *Instance) LoadUrl(ctx context.Context, id string) (*url.URL, error) {
+func (i *Instance) LoadURL(ctx context.Context, id string) (*url.URL, error) {
 	u, err := i.Store.Load(ctx, id)
 	if err != nil {
 		return &url.URL{}, err
@@ -105,7 +105,7 @@ func (i *Instance) BatchShorten(req []models.BatchShortenRequest, ctx context.Co
 	for _, pair := range req {
 		u, errs := url.Parse(pair.OriginalURL)
 		if errs != nil {
-			return []models.BatchShortenResponse{}, ErrParseUrl
+			return []models.BatchShortenResponse{}, ErrParseURL
 		}
 		urls = append(urls, u)
 	}
@@ -116,7 +116,7 @@ func (i *Instance) BatchShorten(req []models.BatchShortenRequest, ctx context.Co
 	}
 
 	if len(shortURLs) != len(req) {
-		return []models.BatchShortenResponse{}, ErrUrlLength
+		return []models.BatchShortenResponse{}, ErrURLLength
 	}
 
 	res := make([]models.BatchShortenResponse, 0, len(shortURLs))

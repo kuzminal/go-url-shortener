@@ -102,7 +102,7 @@ func (h *Handler) ExpandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	target, err := h.Instance.LoadUrl(r.Context(), id)
+	target, err := h.Instance.LoadURL(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -161,14 +161,13 @@ func (h *Handler) BatchShortenAPIHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	shorten, err := h.Instance.BatchShorten(req, r.Context())
-	if errors.Is(err, app.ErrParseUrl) {
+	if errors.Is(err, app.ErrParseURL) {
 		w.WriteHeader(http.StatusBadRequest)
-		msg := fmt.Sprint("Cannot parse given string as URL")
-		_, _ = w.Write([]byte(msg))
+		_, _ = w.Write([]byte("Cannot parse given string as URL"))
 		return
 	}
 
-	if errors.Is(err, app.ErrUrlLength) {
+	if errors.Is(err, app.ErrURLLength) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("invalid shorten URLs length"))
 		return
