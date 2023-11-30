@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
-	grpc "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/grpc"
+	grpcserver "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/grpc"
 	rest "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/http"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
@@ -15,7 +15,7 @@ import (
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/stdlib"
 	"github.com/sirupsen/logrus"
-	grpc2 "google.golang.org/grpc"
+	grpc "google.golang.org/grpc"
 	"net"
 	"net/http"
 	"os"
@@ -74,8 +74,8 @@ func run(ctx context.Context) error {
 	instance := app.NewInstance(config.BaseURL, storage, removeChan)
 	restHandler := &rest.Handler{Instance: instance}
 
-	grpcServer := grpc.NewShortenerServer(instance)
-	s := grpc2.NewServer()
+	grpcServer := grpcserver.NewShortenerServer(instance)
+	s := grpc.NewServer()
 	shortener.RegisterShortenerServer(s, grpcServer)
 	logrus.Printf("Starting gRPC server on port: %v", config.GrpcPort)
 	lis, err := net.Listen("tcp", config.GrpcPort)
@@ -140,21 +140,12 @@ func run(ctx context.Context) error {
 	defer cancel()
 
 	go func() {
-		var wait sync.WaitGroup
-		wait.Add(2)
-		go func() {
-			defer wait.Done()
-			if err := srv.Shutdown(shutdownCtx); err != nil {
-				logrus.Errorf("shutdown: %v", err)
-			}
-			logrus.Println("HTTP server stopped.")
-		}()
-		go func() {
-			defer wait.Done()
-			s.GracefulStop()
-			logrus.Println("GRPC server stopped.")
-		}()
-		wait.Wait()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			logrus.Errorf("shutdown: %v", err)
+		}
+		logrus.Println("HTTP server stopped.")
+		s.GracefulStop()
+		logrus.Println("GRPC server stopped.")
 		close(idleConnectionsClosed)
 	}()
 
