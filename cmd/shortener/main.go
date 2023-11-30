@@ -11,9 +11,12 @@ import (
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/pkg/shortener"
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/stdlib"
 	"github.com/sirupsen/logrus"
+	grpc2 "google.golang.org/grpc"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -70,7 +73,23 @@ func run(ctx context.Context) error {
 	removeChan := make(chan models.BatchRemoveRequest)
 	instance := app.NewInstance(config.BaseURL, storage, removeChan)
 	restHandler := &rest.Handler{Instance: instance}
+
 	grpcServer := grpc.NewShortenerServer(instance)
+	s := grpc2.NewServer()
+	shortener.RegisterShortenerServer(s, grpcServer)
+	logrus.Printf("Starting gRPC server on port: %v", config.GrpcPort)
+	lis, err := net.Listen("tcp", config.GrpcPort)
+	if err != nil {
+		logrus.Fatalf("grpc listen error: %v", err)
+	}
+
+	go func() {
+		err = s.Serve(lis)
+		if err != nil {
+			logrus.Fatalf("grpc serve error: %v", err)
+		}
+	}()
+
 	wg := sync.WaitGroup{}
 	go func() {
 		for removeRequest := range removeChan {
@@ -132,7 +151,7 @@ func run(ctx context.Context) error {
 		}()
 		go func() {
 			defer wait.Done()
-			grpcServer.Server.GracefulStop()
+			s.GracefulStop()
 			logrus.Println("GRPC server stopped.")
 		}()
 		wait.Wait()

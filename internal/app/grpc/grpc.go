@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"log"
-	"net"
 	"net/url"
 
 	"github.com/gofrs/uuid"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -17,14 +14,12 @@ import (
 
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/auth"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/pkg/shortener"
 )
 
 type Server struct {
 	shortener.UnimplementedShortenerServer
-	Server   *grpc.Server
 	instance *app.Instance
 }
 
@@ -125,20 +120,6 @@ func (s *Server) Ping(ctx context.Context, empty *emptypb.Empty) (*emptypb.Empty
 }
 
 func NewShortenerServer(instance *app.Instance) *Server {
-	//port := helper.GetEnvValue("RPC_SERVER_PORT", "50051")
-	logrus.Printf("Starting gRPC server on port: %v", config.GrpcPort)
-	lis, err := net.Listen("tcp", config.GrpcPort)
-	if err != nil {
-		panic(err)
-	}
-	s := grpc.NewServer()
 	server := &Server{instance: instance}
-	shortener.RegisterShortenerServer(s, server)
-	go func() {
-		if err := s.Serve(lis); err != nil {
-			panic(err)
-		}
-	}()
-	server.Server = s
 	return server
 }
