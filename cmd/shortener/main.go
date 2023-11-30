@@ -77,13 +77,13 @@ func run(ctx context.Context) error {
 	grpcServer := grpcserver.NewShortenerServer(instance)
 	s := grpc.NewServer()
 	shortener.RegisterShortenerServer(s, grpcServer)
-	logrus.Printf("Starting gRPC server on port: %v", config.GrpcPort)
-	lis, err := net.Listen("tcp", config.GrpcPort)
-	if err != nil {
-		logrus.Fatalf("grpc listen error: %v", err)
-	}
 
 	go func() {
+		lis, err := net.Listen("tcp", config.GrpcPort)
+		if err != nil {
+			logrus.Fatalf("grpc listen error: %v", err)
+		}
+		logrus.Printf("Starting gRPC server on port: %v", config.GrpcPort)
 		err = s.Serve(lis)
 		if err != nil {
 			logrus.Fatalf("grpc serve error: %v", err)
@@ -151,6 +151,7 @@ func run(ctx context.Context) error {
 
 	select {
 	case <-shutdownCtx.Done():
+		logrus.Println("deadline exceeded")
 		return fmt.Errorf("server shutdown: %w", shutdownCtx.Err())
 	case <-idleConnectionsClosed:
 		logrus.Println("servers stopped.")
