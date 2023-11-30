@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
+	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
-	"net/url"
-
-	"github.com/go-chi/chi/v5"
 
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/auth"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
@@ -30,14 +28,14 @@ func (h *Handler) ShortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := url.Parse(string(b))
-	if err != nil {
+	shortURL, err := h.Instance.Shorten(r.Context(), string(b))
+
+	if errors.Is(err, app.ErrParseURL) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte("Cannot parse given string as URL"))
 		return
 	}
 
-	shortURL, err := h.Instance.Shorten(r.Context(), u)
 	if err != nil && !errors.Is(err, store.ErrConflict) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(err.Error()))
@@ -63,14 +61,14 @@ func (h *Handler) ShortenAPIHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := url.Parse(req.URL)
-	if err != nil {
+	shortURL, err := h.Instance.Shorten(r.Context(), req.URL)
+
+	if errors.Is(err, app.ErrParseURL) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte("Cannot parse given string as URL"))
 		return
 	}
 
-	shortURL, err := h.Instance.Shorten(r.Context(), u)
 	if err != nil && !errors.Is(err, store.ErrConflict) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(err.Error()))

@@ -3,14 +3,12 @@ package grpc
 import (
 	"context"
 	"errors"
-	"log"
-	"net/url"
-
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"log"
 
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/auth"
@@ -26,11 +24,10 @@ type Server struct {
 
 // Shorten обработчик запроса на сокращение ссылок
 func (s *Server) Shorten(ctx context.Context, request *shortener.ShortenRequest) (*shortener.ShortenResponse, error) {
-	u, err := url.Parse(request.Url)
-	if err != nil {
+	shorten, err := s.instance.Shorten(ctx, request.Url)
+	if err != nil && errors.Is(err, app.ErrParseURL) {
 		return nil, status.Errorf(codes.InvalidArgument, app.ErrParseURL.Error())
 	}
-	shorten, err := s.instance.Shorten(ctx, u)
 	if err != nil {
 		return nil, err
 	}

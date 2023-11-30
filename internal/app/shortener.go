@@ -14,14 +14,18 @@ import (
 )
 
 // Shorten обработчик сокращения ссылки
-func (i *Instance) Shorten(ctx context.Context, rawURL *url.URL) (shortURL string, err error) {
+func (i *Instance) Shorten(ctx context.Context, rawURL string) (shortURL string, err error) {
 	uid := auth.UIDFromContext(ctx)
 
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", ErrParseURL
+	}
 	var id string
 	if uid != nil {
-		id, err = i.Store.SaveUser(ctx, *uid, rawURL)
+		id, err = i.Store.SaveUser(ctx, *uid, u)
 	} else {
-		id, err = i.Store.Save(ctx, rawURL)
+		id, err = i.Store.Save(ctx, u)
 	}
 
 	if err != nil && !errors.Is(err, store.ErrConflict) {
