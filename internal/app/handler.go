@@ -232,12 +232,9 @@ func (i *Instance) BatchRemoveAPIHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = i.store.DeleteUsers(ctx, *uid, ids...)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(err.Error()))
-		return
-	}
+	go func() {
+		i.removeChan <- models.BatchRemoveRequest{UID: *uid, Ids: ids}
+	}()
 
 	w.WriteHeader(http.StatusAccepted)
 }

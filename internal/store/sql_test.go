@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"net/url"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -77,6 +78,37 @@ func TestRDB_Save(t *testing.T) {
 	})
 }
 
+func TestRDB_SaveBatch(t *testing.T) {
+	var urlsForSave []*url.URL
+	var rawURL *url.URL
+	for i := 0; i < 10; i++ {
+		rawURL, _ = url.Parse("https://practicum.yandex.ru/" + strconv.Itoa(i))
+		urlsForSave = append(urlsForSave, rawURL)
+	}
+	t.Run("Save batch into PG store", func(t *testing.T) {
+		urlsFromDB, err := store.SaveBatch(context.Background(), urlsForSave)
+		require.NoError(t, err)
+		require.NotEmpty(t, urlsFromDB)
+	})
+}
+
+func TestRDB_SaveUserBatch(t *testing.T) {
+	var urlsForSave []*url.URL
+	var rawURL *url.URL
+
+	t.Run("Save user batch into PG store", func(t *testing.T) {
+		user, err := uuid.NewV4()
+		require.NoError(t, err)
+		for i := 0; i < 10; i++ {
+			rawURL, _ = url.Parse("https://practicum.yandex.ru/" + user.String() + strconv.Itoa(i))
+			urlsForSave = append(urlsForSave, rawURL)
+		}
+		userID, err := store.SaveUserBatch(context.Background(), user, urlsForSave)
+		require.NoError(t, err)
+		require.NotEmpty(t, userID)
+	})
+}
+
 func TestRDB_Load(t *testing.T) {
 	t.Run("Delete users from PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
@@ -92,7 +124,7 @@ func TestRDB_Load(t *testing.T) {
 }
 
 func TestRDB_LoadUser(t *testing.T) {
-	t.Run("Delete users from PG store", func(t *testing.T) {
+	t.Run("Load user from PG store", func(t *testing.T) {
 		user, err := uuid.NewV4()
 		require.NoError(t, err)
 		rawURL, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
@@ -103,6 +135,20 @@ func TestRDB_LoadUser(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, urlID)
 		require.Equal(t, rawURL, urlFromDB)
+	})
+}
+
+func TestRDB_LoadUsers(t *testing.T) {
+	t.Run("Load users from PG store", func(t *testing.T) {
+		user, err := uuid.NewV4()
+		require.NoError(t, err)
+		rawURL, _ := url.Parse("https://practicum.yandex.ru/" + user.String())
+		require.NoError(t, err)
+		urlID, err := store.SaveUser(context.Background(), user, rawURL)
+		require.NoError(t, err)
+		_, err = store.LoadUsers(context.Background(), user)
+		require.NoError(t, err)
+		require.NotEmpty(t, urlID)
 	})
 }
 

@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/gob"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -381,4 +383,31 @@ func TestInstance_BatchShortenAPIHandler(t *testing.T) {
 			assert.Equal(t, tc.expectedResponse, w.Body.Bytes())
 		})
 	}
+}
+
+func TestInstance_BatchRemoveAPIHandler(t *testing.T) {
+	uid := uuid.Must(uuid.NewV4())
+	storage := store.NewInMemory()
+	baseURL := "https://praktikum.yandex.ru/"
+	var urls []string
+	for i := 1; i < 100; i++ {
+		tempURL := baseURL + strconv.Itoa(i)
+		u, _ := url.Parse(tempURL)
+		storage.SaveUser(context.Background(), uid, u)
+		urls = append(urls, tempURL)
+	}
+
+	instance := &Instance{
+		baseURL: "http://localhost:8080",
+		store:   storage,
+	}
+	b, _ := json.Marshal(urls)
+	body := bytes.NewBuffer(b)
+	r := httptest.NewRequest("DELETE", "http://localhost:8080/api/user/urls", body)
+	r = r.WithContext(auth.Context(context.Background(), uid))
+
+	w := httptest.NewRecorder()
+	instance.BatchRemoveAPIHandler(w, r)
+	log.Println(w.Body)
+	assert.Equal(t, http.StatusAccepted, w.Code)
 }

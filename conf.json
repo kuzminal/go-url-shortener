@@ -1,0 +1,10 @@
+{
+  "run_port": ":8080",
+  "base_url": "http://localhost",
+  "persist_file": "",
+  "database_dsn": "",
+  "use_tls": true,
+  "cert_file": "cert.pem",
+  "key_file": "key.pem",
+  "shutdown_timeout": 15
+}

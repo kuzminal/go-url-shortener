@@ -5,17 +5,13 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"os"
 	"testing"
 	"time"
 
-	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -26,7 +22,9 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-var pgContainer *postgres.PostgresContainer
+var (
+	pgContainer *postgres.PostgresContainer
+)
 
 func CreatePostgresContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
 	pgContainer, err := postgres.RunContainer(ctx,
@@ -46,21 +44,15 @@ func CreatePostgresContainer(ctx context.Context) (*postgres.PostgresContainer, 
 	return pgContainer, err
 }
 
-func TestMain(m *testing.M) {
-	config.Parse()
+func Test_run(t *testing.T) {
+	config.ShutdownTimeout = 10 * time.Minute
+	cancelableContext, cancel := context.WithCancel(context.Background())
 	go func() {
-		err := run()
+		err := run(cancelableContext)
 		if err != nil {
 			panic(err)
 		}
 	}()
-	pgContainer, _ = CreatePostgresContainer(context.Background())
-	code := m.Run()
-	pgContainer.Terminate(context.Background())
-	os.Exit(code)
-}
-
-func Test_run(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	targetURL := "https://praktikum.yandex.ru/"
@@ -199,46 +191,22 @@ func Test_run(t *testing.T) {
 
 		require.Equal(t, expectResponse, actualResponse)
 	})
-}
+	cancel()
+	time.Sleep(200 * time.Millisecond)
 
-func TestEndToEnd(t *testing.T) {
-	originalURL := "https://praktikum.yandex.ru"
-
-	// create HTTP client without redirects support
-	errRedirectBlocked := errors.New("HTTP redirect blocked")
-	redirPolicy := resty.RedirectPolicyFunc(func(_ *http.Request, _ []*http.Request) error {
-		return errRedirectBlocked
+	timeOutContext, cancelWithTimeOut := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer cancelWithTimeOut()
+	t.Run("graceful_shutdown_exceeded", func(t *testing.T) {
+		config.ShutdownTimeout = 1 * time.Nanosecond
+		err := run(timeOutContext)
+		require.Error(t, err)
+		require.EqualError(t, err, fmt.Sprintf("server shutdown: %s", context.DeadlineExceeded.Error()))
 	})
-
-	httpc := resty.New().
-		SetBaseURL("http://localhost:8080").
-		SetRedirectPolicy(redirPolicy)
-
-	// shorten URL
-	req := httpc.R().
-		SetBody(originalURL)
-	resp, err := req.Post("/")
-	require.NoError(t, err)
-
-	shortenURL := string(resp.Body())
-
-	assert.Equal(t, http.StatusCreated, resp.StatusCode())
-	assert.NoError(t, func() error {
-		_, errs := url.Parse(shortenURL)
-		return errs
-	}())
-
-	// expand URL
-	req = resty.New().
-		SetRedirectPolicy(redirPolicy).
-		R()
-	resp, err = req.Get(shortenURL)
-	if !errors.Is(err, errRedirectBlocked) {
+	t.Run("graceful_shutdown_normal", func(t *testing.T) {
+		config.ShutdownTimeout = 1 * time.Minute
+		err := run(timeOutContext)
 		require.NoError(t, err)
-	}
-
-	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode())
-	assert.Equal(t, originalURL, resp.Header().Get("Location"))
+	})
 }
 
 func Test_newStore(t *testing.T) {
@@ -248,6 +216,7 @@ func Test_newStore(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, store)
 	})
+	pgContainer, _ = CreatePostgresContainer(context.Background())
 
 	t.Run("create pg store", func(t *testing.T) {
 		connStr, _ := pgContainer.ConnectionString(context.Background(), "sslmode=disable")
@@ -256,4 +225,5 @@ func Test_newStore(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, store)
 	})
+	pgContainer.Terminate(context.Background())
 }

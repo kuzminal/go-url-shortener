@@ -2,20 +2,22 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"fmt"
-	"net/http"
-	"os"
-	"text/template"
-	"time"
-
-	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/stdlib"
-	"github.com/sirupsen/logrus"
-
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/stdlib"
+	"github.com/sirupsen/logrus"
+	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"text/template"
 )
 
 // BuildInfo структура для хранения информации о сборке приложения
@@ -35,6 +37,9 @@ Build commit: {{if .BuildCommit}}{{.BuildCommit}}{{else}}N/A{{end}}
 `
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
+
 	bi := BuildInfo{
 		BuildVersion: buildVersion,
 		BuildDate:    buildDate,
@@ -49,24 +54,85 @@ func main() {
 
 	config.Parse()
 
-	if err := run(); err != nil {
+	if err := run(ctx); err != nil {
 		panic("unexpected error: " + err.Error())
 	}
 }
 
-func run() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
+func run(ctx context.Context) error {
 	storage, err := newStore(ctx)
 	if err != nil {
 		return fmt.Errorf("cannot create storage: %w", err)
 	}
 	defer storage.Close()
+	removeChan := make(chan models.BatchRemoveRequest)
+	instance := app.NewInstance(config.BaseURL, storage, removeChan)
+	wg := sync.WaitGroup{}
+	go func() {
+		for removeRequest := range removeChan {
+			wg.Add(1)
+			go func(req models.BatchRemoveRequest) {
+				defer wg.Done()
+				err := storage.DeleteUsers(ctx, req.UID, req.Ids...)
+				if err != nil {
+					logrus.Errorf("Couldn't delete urls for user %s", req.UID.String())
+				}
+			}(removeRequest)
+		}
+	}()
+	srv := &http.Server{
+		Addr:    config.RunPort,
+		Handler: newRouter(instance),
+	}
 
-	instance := app.NewInstance(config.BaseURL, storage)
+	if config.UseTLS {
+		err := config.MakeKeys(config.CertFile, config.KeyFile)
+		if err != nil {
+			return err
+		}
+		srv.TLSConfig = &tls.Config{
+			MinVersion: tls.VersionTLS13,
+		}
+		go func() {
+			if err := srv.ListenAndServeTLS(config.CertFile, config.KeyFile); err != nil && err != http.ErrServerClosed {
+				logrus.Fatalf("listen and serve: %v", err)
+			}
+		}()
+	} else {
+		go func() {
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logrus.Fatalf("listen and serve: %v", err)
+			}
+		}()
+	}
 
-	return http.ListenAndServe(config.RunPort, newRouter(instance))
+	logrus.Infof("listening on %s", config.RunPort)
+
+	<-ctx.Done()
+
+	logrus.Info("shutting down server gracefully")
+	idleConnectionsClosed := make(chan struct{})
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), config.ShutdownTimeout)
+	defer cancel()
+
+	go func() {
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			logrus.Errorf("shutdown: %v", err)
+		}
+		close(idleConnectionsClosed)
+	}()
+
+	select {
+	case <-shutdownCtx.Done():
+		return fmt.Errorf("server shutdown: %w", shutdownCtx.Err())
+	case <-idleConnectionsClosed:
+		logrus.Println("HTTP server stopped.")
+	}
+
+	wg.Wait()
+	logrus.Println("All processes done.")
+	return nil
 }
 
 func newStore(ctx context.Context) (storage store.AuthStore, err error) {
