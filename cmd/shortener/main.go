@@ -5,17 +5,6 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
-	grpcserver "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/grpc"
-	rest "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/http"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/pkg/shortener"
-	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/stdlib"
-	"github.com/sirupsen/logrus"
-	grpc "google.golang.org/grpc"
 	"net"
 	"net/http"
 	"os"
@@ -23,6 +12,19 @@ import (
 	"sync"
 	"syscall"
 	"text/template"
+
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/stdlib"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
+	grpcserver "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/grpc"
+	rest "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/http"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/pkg/shortener"
 )
 
 // BuildInfo структура для хранения информации о сборке приложения
@@ -83,10 +85,9 @@ func run(ctx context.Context) error {
 	}
 
 	go func() {
-
 		logrus.Printf("Starting gRPC server on port: %v", config.GrpcPort)
 		err = s.Serve(lis)
-		if err != nil {
+		if err != nil && err != grpc.ErrServerStopped {
 			logrus.Fatalf("grpc serve error: %v", err)
 		}
 	}()
