@@ -3,17 +3,16 @@ package grpc
 import (
 	"context"
 	"errors"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/auth"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/pkg/shortener"
 	"github.com/gofrs/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log"
-
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/auth"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/pkg/shortener"
 )
 
 // Server структура grpc сервера

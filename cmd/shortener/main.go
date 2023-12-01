@@ -77,7 +77,7 @@ func run(ctx context.Context) error {
 	restHandler := &rest.Handler{Instance: instance}
 
 	grpcServer := grpcserver.NewShortenerServer(instance)
-	s := grpc.NewServer()
+	s := grpc.NewServer(grpc.UnaryInterceptor(grpcserver.AuthInterceptor))
 	shortener.RegisterShortenerServer(s, grpcServer)
 	lis, err := net.Listen("tcp", config.GrpcPort)
 	if err != nil {
