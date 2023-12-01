@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// AuthInterceptor перехватчик для проверки наличия пользователя и генерации его если он отсутствует
 func AuthInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	var uid *uuid.UUID
 	md, ok := metadata.FromIncomingContext(ctx)
@@ -18,7 +19,7 @@ func AuthInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerIn
 	}
 	a := md.Get("auth")
 	if len(a) > 0 {
-		uid, err = auth.DecodeUIDFromHex(a[0])
+		uid, _ = auth.DecodeUIDFromHex(a[0])
 	}
 
 	if uid == nil {
