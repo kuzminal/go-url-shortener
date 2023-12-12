@@ -1,0 +1,79 @@
+syntax = "proto3";
+package shortener;
+import "google/protobuf/empty.proto";
+option go_package = "./shortener;shortener";
+
+message ShortenRequest {
+  string url = 1;
+}
+
+message ShortenResponse {
+  string result = 1;
+}
+
+message UrlResponse {
+  string original_url = 1;
+}
+
+message BatchShorten {
+  string correlation_id = 1;
+  string original_url = 2;
+}
+
+message BatchResponse {
+  string correlation_id = 1;
+  string short_url = 2;
+}
+
+message BatchShortenRequest {
+  repeated BatchShorten batch = 1;
+}
+
+message BatchShortenResponse {
+  repeated BatchResponse result = 1;
+}
+
+message BatchRemoveRequest {
+  string uuid = 1;
+  repeated string ids = 2;
+}
+
+message StatisticsRequest {
+  string ip = 1;
+}
+
+message StatisticsResponse {
+  uint32 urls = 1;
+  uint32 users = 2;
+}
+
+message UrlRequest {
+  string id = 1;
+}
+
+message UserUrlsRequest {
+  string uuid = 1;
+}
+
+message UserUrls {
+  string short_url = 1;
+  string original_url = 2;
+}
+
+message UserUrlsResponse {
+  repeated UserUrls urls = 1;
+}
+
+message PingReq {
+
+}
+
+service Shortener {
+  rpc Shorten(ShortenRequest) returns (ShortenResponse) {}
+  rpc BatchShorten(BatchShortenRequest) returns (BatchShortenResponse) {}
+  rpc BatchRemove(BatchRemoveRequest) returns (google.protobuf.Empty) {}
+  rpc Statistics(StatisticsRequest) returns (StatisticsResponse) {}
+  rpc Expand(UrlRequest) returns (UrlResponse) {}
+  rpc UserUrls(UserUrlsRequest) returns (UserUrlsResponse) {}
+  rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+}

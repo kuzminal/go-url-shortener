@@ -39,4 +39,6 @@ type AuthStore interface {
 	LoadUser(ctx context.Context, uid uuid.UUID, id string) (url *url.URL, err error)
 	LoadUsers(ctx context.Context, uid uuid.UUID) (urls map[string]*url.URL, err error)
 	DeleteUsers(ctx context.Context, uid uuid.UUID, ids ...string) error
+	Users(ctx context.Context) int
+	Urls(ctx context.Context) int
 }

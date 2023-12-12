@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"time"
 
@@ -297,4 +298,28 @@ func (r *RDB) Ping(ctx context.Context) error {
 // Close закрыть хранилище
 func (r *RDB) Close() error {
 	return r.db.Close()
+}
+
+// Users статистика по пользователям
+func (r *RDB) Users(ctx context.Context) int {
+	var count int
+	query := `SELECT COUNT(distinct user_id) FROM urls;`
+
+	err := r.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		log.Printf("cannot scan row: %v\n", err)
+	}
+	return count
+}
+
+// Urls статистика по ссылкам
+func (r *RDB) Urls(ctx context.Context) int {
+	var count int
+	query := `SELECT COUNT(1) FROM urls;`
+
+	err := r.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		log.Printf("cannot scan row: %v\n", err)
+	}
+	return count
 }

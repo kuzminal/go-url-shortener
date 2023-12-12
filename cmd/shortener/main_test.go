@@ -194,13 +194,14 @@ func Test_run(t *testing.T) {
 	cancel()
 	time.Sleep(200 * time.Millisecond)
 
-	timeOutContext, cancelWithTimeOut := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	timeOutContext, cancelWithTimeOut := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancelWithTimeOut()
 	t.Run("graceful_shutdown_exceeded", func(t *testing.T) {
-		config.ShutdownTimeout = 1 * time.Nanosecond
+		config.ShutdownTimeout = 100 * time.Nanosecond
 		err := run(timeOutContext)
 		require.Error(t, err)
 		require.EqualError(t, err, fmt.Sprintf("server shutdown: %s", context.DeadlineExceeded.Error()))
+		time.Sleep(100 * time.Millisecond)
 	})
 	t.Run("graceful_shutdown_normal", func(t *testing.T) {
 		config.ShutdownTimeout = 1 * time.Minute

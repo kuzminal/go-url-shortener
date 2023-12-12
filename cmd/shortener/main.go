@@ -5,19 +5,26 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
-	"github.com/jackc/pgx"
-	"github.com/jackc/pgx/stdlib"
-	"github.com/sirupsen/logrus"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"text/template"
+
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/stdlib"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
+	grpcserver "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/grpc"
+	rest "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/http"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/pkg/shortener"
 )
 
 // BuildInfo структура для хранения информации о сборке приложения
@@ -67,6 +74,24 @@ func run(ctx context.Context) error {
 	defer storage.Close()
 	removeChan := make(chan models.BatchRemoveRequest)
 	instance := app.NewInstance(config.BaseURL, storage, removeChan)
+	restHandler := &rest.Handler{Instance: instance}
+
+	grpcServer := grpcserver.NewShortenerServer(instance)
+	s := grpc.NewServer(grpc.UnaryInterceptor(grpcserver.AuthInterceptor))
+	shortener.RegisterShortenerServer(s, grpcServer)
+	lis, err := net.Listen("tcp", config.GrpcPort)
+	if err != nil {
+		logrus.Fatalf("grpc listen error: %v", err)
+	}
+
+	go func() {
+		logrus.Printf("Starting gRPC server on port: %v", config.GrpcPort)
+		err = s.Serve(lis)
+		if err != nil && err != grpc.ErrServerStopped {
+			logrus.Fatalf("grpc serve error: %v", err)
+		}
+	}()
+
 	wg := sync.WaitGroup{}
 	go func() {
 		for removeRequest := range removeChan {
@@ -82,7 +107,7 @@ func run(ctx context.Context) error {
 	}()
 	srv := &http.Server{
 		Addr:    config.RunPort,
-		Handler: newRouter(instance),
+		Handler: newRouter(restHandler),
 	}
 
 	if config.UseTLS {
@@ -120,14 +145,18 @@ func run(ctx context.Context) error {
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			logrus.Errorf("shutdown: %v", err)
 		}
+		logrus.Println("HTTP server stopped.")
+		s.GracefulStop()
+		logrus.Println("GRPC server stopped.")
 		close(idleConnectionsClosed)
 	}()
 
 	select {
 	case <-shutdownCtx.Done():
+		logrus.Println("deadline exceeded")
 		return fmt.Errorf("server shutdown: %w", shutdownCtx.Err())
 	case <-idleConnectionsClosed:
-		logrus.Println("HTTP server stopped.")
+		logrus.Println("servers stopped.")
 	}
 
 	wg.Wait()

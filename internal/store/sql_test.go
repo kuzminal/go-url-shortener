@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"github.com/stretchr/testify/assert"
 	"net/url"
 	"os"
 	"strconv"
@@ -175,4 +177,44 @@ func TestRDB_Ping(t *testing.T) {
 func TestRDB_Close(t *testing.T) {
 	err := store.Close()
 	require.NoError(t, err)
+}
+
+func TestRDB_Urls(t *testing.T) {
+	ctx := context.Background()
+	store, _ := NewFileStore("./store")
+	urls := make([]*url.URL, 10)
+	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
+	uuidToStore := uuid.Must(uuid.NewV4())
+	ids := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		urls[i] = urlToStore
+		ids[i] = fmt.Sprintf("%d", i)
+	}
+	_, _ = store.SaveUserBatch(ctx, uuidToStore, urls)
+	t.Run("urls statistic", func(t *testing.T) {
+
+		count := store.Urls(ctx)
+		assert.NotEmpty(t, count)
+		assert.Equal(t, 10, count)
+	})
+}
+
+func TestRDB_Users(t *testing.T) {
+	ctx := context.Background()
+	store, _ := NewFileStore("./store")
+	urls := make([]*url.URL, 10)
+	urlToStore, _ := url.Parse("https://practicum.yandex.ru/")
+	uuidToStore := uuid.Must(uuid.NewV4())
+	ids := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		urls[i] = urlToStore
+		ids[i] = fmt.Sprintf("%d", i)
+	}
+	_, _ = store.SaveUserBatch(ctx, uuidToStore, urls)
+	t.Run("users statistic", func(t *testing.T) {
+
+		count := store.Users(ctx)
+		assert.NotEmpty(t, count)
+		assert.Equal(t, 1, count)
+	})
 }

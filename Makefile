@@ -6,3 +6,6 @@ run-db:
     -e POSTGRES_DB=postgres \
     -p 5432:5432 \
     -d postgres:latest
+
+proto:
+	protoc ./proto/*.proto --go-grpc_out=pkg --go_out=pkg

@@ -7,11 +7,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/gofrs/uuid"
 
-	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
+	rest "github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app/http"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/auth"
 )
 
-func newRouter(i *app.Instance) http.Handler {
+func newRouter(i *rest.Handler) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(gzipMiddleware, authMiddleware)
@@ -22,6 +22,7 @@ func newRouter(i *app.Instance) http.Handler {
 	r.Get("/{id}", i.ExpandHandler)
 	r.Get("/api/user/urls", i.UserURLsHandler)
 	r.Get("/ping", i.PingHandler)
+	r.Get("/api/internal/stats", i.StatisticsHandler)
 
 	return r
 }

@@ -15,5 +15,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.26.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.26.0
 	golang.org/x/tools v0.14.0
+	google.golang.org/grpc v1.57.1
+	google.golang.org/protobuf v1.30.0
 	honnef.co/go/tools v0.4.6
 )

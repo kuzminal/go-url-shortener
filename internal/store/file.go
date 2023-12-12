@@ -195,3 +195,13 @@ func (f *FileStore) Ping(_ context.Context) error {
 func (f *FileStore) flush() error {
 	return f.enc.Encode(f.store)
 }
+
+// Users статистика по пользователям
+func (f *FileStore) Users(_ context.Context) int {
+	return len(f.store.UserHot)
+}
+
+// Urls статистика по ссылкам
+func (f *FileStore) Urls(_ context.Context) int {
+	return len(f.store.Hot)
+}

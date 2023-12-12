@@ -43,3 +43,9 @@ type BatchRemoveRequest struct {
 	UID uuid.UUID
 	Ids []string
 }
+
+// Statistics структура для представления статистики
+type Statistics struct {
+	Urls  int `json:"urls"`
+	Users int `json:"users"`
+}

@@ -1,10 +1,11 @@
-package app
+package http
 
 import (
 	"bytes"
 	"context"
 	"encoding/gob"
 	"encoding/json"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/app"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/auth"
+	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/config"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/internal/store"
 	"github.com/Yandex-Practicum/go-musthave-shortener-trainer/models"
 )
@@ -25,10 +27,11 @@ import (
 func Test_ShortenAPIHandler(t *testing.T) {
 	targetURL := "https://praktikum.yandex.ru/"
 
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   store.NewInMemory(),
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   store.NewInMemory(),
 	}
+	handler := Handler{Instance: instance}
 
 	testCases := []struct {
 		name             string
@@ -59,7 +62,7 @@ func Test_ShortenAPIHandler(t *testing.T) {
 			r := httptest.NewRequest("POST", "http://localhost:8080/api/shorten", body)
 			w := httptest.NewRecorder()
 
-			instance.ShortenAPIHandler(w, r)
+			handler.ShortenAPIHandler(w, r)
 
 			assert.Equal(t, tc.expectedStatus, w.Code)
 			assert.Equal(t, tc.expectedResponse, w.Body.Bytes())
@@ -74,10 +77,11 @@ func Test_expander(t *testing.T) {
 	storage := store.NewInMemory()
 	id, _ := storage.Save(context.Background(), parsedURL)
 
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   storage,
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   storage,
 	}
+	handler := Handler{Instance: instance}
 
 	testCases := []struct {
 		name             string
@@ -114,7 +118,7 @@ func Test_expander(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			instance.ExpandHandler(w, r)
+			handler.ExpandHandler(w, r)
 
 			assert.Equal(t, tc.expectedStatus, w.Code)
 			assert.Equal(t, tc.expectedLocation, w.Header().Get("Location"))
@@ -129,10 +133,11 @@ func Test_userURLs(t *testing.T) {
 	storage := store.NewInMemory()
 	id, _ := storage.SaveUser(context.Background(), uid, u)
 
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   storage,
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   storage,
 	}
+	handler := Handler{Instance: instance}
 
 	testCases := []struct {
 		name           string
@@ -166,7 +171,7 @@ func Test_userURLs(t *testing.T) {
 			r = r.WithContext(tc.ctx)
 
 			w := httptest.NewRecorder()
-			instance.UserURLsHandler(w, r)
+			handler.UserURLsHandler(w, r)
 
 			assert.Equal(t, tc.expectedStatus, w.Code)
 			assert.Equal(t, tc.expectedBody, w.Body.Bytes())
@@ -177,10 +182,11 @@ func Test_userURLs(t *testing.T) {
 func Test_ShortenHandler(t *testing.T) {
 	targetURL := "https://praktikum.yandex.ru/"
 
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   store.NewInMemory(),
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   store.NewInMemory(),
 	}
+	handler := Handler{Instance: instance}
 
 	testCases := []struct {
 		name             string
@@ -209,7 +215,7 @@ func Test_ShortenHandler(t *testing.T) {
 			r := httptest.NewRequest("POST", "http://localhost:8080/api/shorten", body)
 			w := httptest.NewRecorder()
 
-			instance.ShortenHandler(w, r)
+			handler.ShortenHandler(w, r)
 
 			assert.Equal(t, tc.expectedStatus, w.Code)
 			assert.Equal(t, tc.expectedResponse, w.Body.Bytes())
@@ -218,66 +224,71 @@ func Test_ShortenHandler(t *testing.T) {
 }
 
 func TestInstance_PingHandler(t *testing.T) {
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   store.NewInMemory(),
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   store.NewInMemory(),
 	}
+	handler := Handler{Instance: instance}
 	t.Run("ping", func(t *testing.T) {
 		r := httptest.NewRequest("GET", "http://localhost:8080/ping", nil)
 		w := httptest.NewRecorder()
 
-		instance.PingHandler(w, r)
+		handler.PingHandler(w, r)
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 }
 
-func ExampleInstance_ShortenHandler() {
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   store.NewInMemory(),
+func ExampleHandler_ShortenHandler() {
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   store.NewInMemory(),
 	}
+	handler := Handler{Instance: instance}
 
 	b := "https://praktikum.yandex.ru/"
 	body := bytes.NewBuffer([]byte(b))
 
 	r := httptest.NewRequest("POST", "http://localhost:8080/", body)
 	w := httptest.NewRecorder()
-	instance.ShortenHandler(w, r)
+	handler.ShortenHandler(w, r)
 }
 
-func ExampleInstance_ShortenAPIHandler() {
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   store.NewInMemory(),
+func ExampleHandler_ShortenAPIHandler() {
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   store.NewInMemory(),
 	}
+	handler := Handler{Instance: instance}
 
 	b, _ := json.Marshal(models.ShortenRequest{URL: "https://praktikum.yandex.ru/"})
 	body := bytes.NewBuffer(b)
 
 	r := httptest.NewRequest("POST", "http://localhost:8080/api/shorten", body)
 	w := httptest.NewRecorder()
-	instance.ShortenHandler(w, r)
+	handler.ShortenHandler(w, r)
 }
 
-func ExampleInstance_BatchShortenAPIHandler() {
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   store.NewInMemory(),
+func ExampleHandler_BatchShortenAPIHandler() {
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   store.NewInMemory(),
 	}
+	handler := Handler{Instance: instance}
 
 	b, _ := json.Marshal(models.BatchShortenRequest{CorrelationID: "id1", OriginalURL: "https://praktikum.yandex.ru/"})
 	body := bytes.NewBuffer(b)
 
 	r := httptest.NewRequest("POST", "http://localhost:8080/api/shorten", body)
 	w := httptest.NewRecorder()
-	instance.BatchShortenAPIHandler(w, r)
+	handler.BatchShortenAPIHandler(w, r)
 }
 
-func ExampleInstance_BatchRemoveAPIHandler() {
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   store.NewInMemory(),
+func ExampleHandler_BatchRemoveAPIHandler() {
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   store.NewInMemory(),
 	}
+	handler := Handler{Instance: instance}
 
 	ids := []string{"id1", "id2", "id3"}
 	buf := &bytes.Buffer{}
@@ -286,31 +297,33 @@ func ExampleInstance_BatchRemoveAPIHandler() {
 
 	r := httptest.NewRequest("POST", "http://localhost:8080/api/shorten", body)
 	w := httptest.NewRecorder()
-	instance.BatchRemoveAPIHandler(w, r)
+	handler.BatchRemoveAPIHandler(w, r)
 }
 
-func ExampleInstance_PingHandler() {
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   store.NewInMemory(),
+func ExampleHandler_PingHandler() {
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   store.NewInMemory(),
 	}
+	handler := Handler{Instance: instance}
 	r := httptest.NewRequest("GET", "http://localhost:8080/ping", nil)
 	w := httptest.NewRecorder()
 
-	instance.PingHandler(w, r)
+	handler.PingHandler(w, r)
 }
 
-func ExampleInstance_ExpandHandler() {
+func ExampleHandler_ExpandHandler() {
 	expectedURL := "https://praktikum.yandex.ru/"
 	parsedURL, _ := url.Parse(expectedURL)
 
 	storage := store.NewInMemory()
 	id, _ := storage.Save(context.Background(), parsedURL)
 
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   storage,
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   storage,
 	}
+	handler := Handler{Instance: instance}
 
 	r := httptest.NewRequest("GET", "http://localhost:8080/"+id, nil)
 	rctx := chi.NewRouteContext()
@@ -319,34 +332,36 @@ func ExampleInstance_ExpandHandler() {
 
 	w := httptest.NewRecorder()
 
-	instance.ExpandHandler(w, r)
+	handler.ExpandHandler(w, r)
 }
 
-func ExampleInstance_UserURLsHandler() {
+func ExampleHandler_UserURLsHandler() {
 	uid := uuid.Must(uuid.NewV4())
 	storage := store.NewInMemory()
 	u, _ := url.Parse("https://praktikum.yandex.ru/")
 	storage.SaveUser(context.Background(), uid, u)
 
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   storage,
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   storage,
 	}
+	handler := Handler{Instance: instance}
 
 	r := httptest.NewRequest("GET", "http://localhost:8080/user/urls", nil)
 	r = r.WithContext(auth.Context(context.Background(), uid))
 
 	w := httptest.NewRecorder()
-	instance.UserURLsHandler(w, r)
+	handler.UserURLsHandler(w, r)
 }
 
 func TestInstance_BatchShortenAPIHandler(t *testing.T) {
 	targetURL := "https://praktikum.yandex.ru/"
 
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   store.NewInMemory(),
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   store.NewInMemory(),
 	}
+	handler := Handler{Instance: instance}
 
 	testCases := []struct {
 		name             string
@@ -358,7 +373,7 @@ func TestInstance_BatchShortenAPIHandler(t *testing.T) {
 			name:             "bad_request",
 			url:              "htt_p://o.com",
 			expectedStatus:   http.StatusBadRequest,
-			expectedResponse: []byte("Cannot parse given string as URL: htt_p://o.com"),
+			expectedResponse: []byte("Cannot parse given string as URL"),
 		},
 		{
 			name:             "success",
@@ -377,7 +392,7 @@ func TestInstance_BatchShortenAPIHandler(t *testing.T) {
 			r := httptest.NewRequest("POST", "http://localhost:8080/api/shorten/batch", body)
 			w := httptest.NewRecorder()
 
-			instance.BatchShortenAPIHandler(w, r)
+			handler.BatchShortenAPIHandler(w, r)
 
 			assert.Equal(t, tc.expectedStatus, w.Code)
 			assert.Equal(t, tc.expectedResponse, w.Body.Bytes())
@@ -397,17 +412,76 @@ func TestInstance_BatchRemoveAPIHandler(t *testing.T) {
 		urls = append(urls, tempURL)
 	}
 
-	instance := &Instance{
-		baseURL: "http://localhost:8080",
-		store:   storage,
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   storage,
 	}
+	handler := Handler{Instance: instance}
 	b, _ := json.Marshal(urls)
 	body := bytes.NewBuffer(b)
 	r := httptest.NewRequest("DELETE", "http://localhost:8080/api/user/urls", body)
 	r = r.WithContext(auth.Context(context.Background(), uid))
 
 	w := httptest.NewRecorder()
-	instance.BatchRemoveAPIHandler(w, r)
+	handler.BatchRemoveAPIHandler(w, r)
 	log.Println(w.Body)
 	assert.Equal(t, http.StatusAccepted, w.Code)
+}
+
+func TestInstance_StatisticsHandler(t *testing.T) {
+	uid := uuid.Must(uuid.NewV4())
+	storage := store.NewInMemory()
+	baseURL := "https://praktikum.yandex.ru/"
+
+	for i := 1; i < 100; i++ {
+		tempURL := baseURL + strconv.Itoa(i)
+		u, _ := url.Parse(tempURL)
+		storage.SaveUser(context.Background(), uid, u)
+	}
+	instance := &app.Instance{
+		BaseURL: "http://localhost:8080",
+		Store:   storage,
+	}
+	handler := Handler{Instance: instance}
+
+	testCases := []struct {
+		name             string
+		instance         *app.Instance
+		ip               string
+		trustedSubnet    string
+		expectedStatus   int
+		expectedResponse models.Statistics
+	}{
+		{
+			name:             "forbiden",
+			instance:         instance,
+			ip:               "192.168.1.123",
+			trustedSubnet:    "10.0.0.105/8",
+			expectedStatus:   http.StatusForbidden,
+			expectedResponse: models.Statistics{},
+		},
+		{
+			name:             "ok",
+			instance:         instance,
+			ip:               "10.0.0.105",
+			trustedSubnet:    "10.0.0.105/8",
+			expectedStatus:   http.StatusOK,
+			expectedResponse: models.Statistics{Users: 1, Urls: 99},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest("GET", "http://localhost:8080/api/internal/stats", nil)
+			r = r.WithContext(auth.Context(context.Background(), uid))
+			config.TrustedSubnet = tc.trustedSubnet
+			r.Header.Add("X-Real-IP", tc.ip)
+			w := httptest.NewRecorder()
+			handler.StatisticsHandler(w, r)
+			var resp models.Statistics
+			_ = json.Unmarshal(w.Body.Bytes(), &resp)
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.Equal(t, tc.expectedResponse, resp)
+		})
+	}
 }

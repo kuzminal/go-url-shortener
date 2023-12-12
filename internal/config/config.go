@@ -12,6 +12,7 @@ import (
 // Параметры запуска приложения
 var (
 	RunPort         = ":8080"                                    // RunPort порт для запуска приложения
+	GrpcPort        = ":4080"                                    // GrpcPort порт для запуска grpc сервера приложения
 	BaseURL         = "http://localhost" + RunPort               // BaseURL базовый URL для приложения
 	PersistFile     = ""                                         // PersistFile файл для хранилища
 	AuthSecret      = []byte("ololo-trololo-shimba-boomba-look") // AuthSecret сикрет для авторизации пользователя
@@ -21,11 +22,13 @@ var (
 	KeyFile         = ""                                         // KeyFile путь к файлу с приватным ключом
 	ConfigFile      = ""                                         // ConfigFile путь к файлу с конфигурацией приложения
 	ShutdownTimeout = 10 * time.Second                           // ShutdownTimeout время ожидания для graceful shutdown
+	TrustedSubnet   = ""                                         // TrustedSubnet маска подсети
 )
 
 // AppConfig структура для конфигурации приложения
 type AppConfig struct {
 	RunPort         string `json:"run_port"`         // RunPort порт для запуска приложения
+	GrpcPort        string `json:"grpc_port"`        // GrpcPort порт для запуска grpc сервера приложения
 	BaseURL         string `json:"base_url"`         // BaseURL базовый URL для приложения
 	PersistFile     string `json:"persist_file"`     // PersistFile файл для хранилища
 	DatabaseDSN     string `json:"database_dsn"`     // DatabaseDSN строка подключения к БД
@@ -33,6 +36,7 @@ type AppConfig struct {
 	CertFile        string `json:"cert_file"`        // CertFile пусть к файлу с сертификатом
 	KeyFile         string `json:"key_file"`         // KeyFile путь к файлу с приватным ключом
 	ShutdownTimeout int    `json:"shutdown_timeout"` // ShutdownTimeout время ожидания для graceful shutdown
+	TrustedSubnet   string `json:"trusted_subnet"`   // TrustedSubnet маска подсети
 }
 
 // Parse разбарает папаметры запуска приложения
@@ -45,7 +49,9 @@ func Parse() {
 	flag.StringVar(&CertFile, "certfile", "cert.pem", "certificate PEM file")
 	flag.StringVar(&KeyFile, "keyfile", "key.pem", "key PEM file")
 	flag.StringVar(&ConfigFile, "config", ConfigFile, "path to config file")
-	flag.DurationVar(&ShutdownTimeout, "t", ShutdownTimeout, "graceful shutdown timeout")
+	flag.DurationVar(&ShutdownTimeout, "gst", ShutdownTimeout, "graceful shutdown timeout")
+	flag.StringVar(&TrustedSubnet, "t", TrustedSubnet, "CIDR")
+	flag.StringVar(&GrpcPort, "gp", GrpcPort, "port for grpc server")
 
 	flag.Parse()
 	if ConfigFile != "" {
@@ -57,6 +63,9 @@ func Parse() {
 
 	if val := os.Getenv("SERVER_ADDRESS"); val != "" {
 		RunPort = val
+	}
+	if val := os.Getenv("GRPC_ADDRESS"); val != "" {
+		GrpcPort = val
 	}
 	if val := os.Getenv("BASE_URL"); val != "" {
 		BaseURL = val
@@ -87,6 +96,9 @@ func Parse() {
 		if err == nil {
 			ShutdownTimeout = time.Duration(timeout) * time.Second
 		}
+	}
+	if val := os.Getenv("TRUSTED_SUBNET"); val != "" {
+		TrustedSubnet = val
 	}
 
 	BaseURL = strings.TrimRight(BaseURL, "/")
@@ -121,6 +133,12 @@ func ParseJSON() error {
 	}
 	if KeyFile == "" {
 		KeyFile = cfg.KeyFile
+	}
+	if TrustedSubnet == "" {
+		TrustedSubnet = cfg.TrustedSubnet
+	}
+	if GrpcPort == "" {
+		GrpcPort = cfg.GrpcPort
 	}
 
 	return nil

@@ -7,17 +7,17 @@ import (
 
 // Instance структура для хранения информации о приложении, включая хранилище
 type Instance struct {
-	baseURL string
+	BaseURL string
 
-	store      store.AuthStore
-	removeChan chan models.BatchRemoveRequest
+	Store      store.AuthStore
+	RemoveChan chan models.BatchRemoveRequest
 }
 
 // NewInstance функция создания новой структуры приложения
 func NewInstance(baseURL string, storage store.AuthStore, removeChan chan models.BatchRemoveRequest) *Instance {
 	return &Instance{
-		baseURL:    baseURL,
-		store:      storage,
-		removeChan: removeChan,
+		BaseURL:    baseURL,
+		Store:      storage,
+		RemoveChan: removeChan,
 	}
 }

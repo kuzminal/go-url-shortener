@@ -156,3 +156,13 @@ func (m *InMemory) Close() error {
 func (m *InMemory) Ping(_ context.Context) error {
 	return nil
 }
+
+// Users статистика по пользователям
+func (m *InMemory) Users(_ context.Context) int {
+	return len(m.userStore)
+}
+
+// Urls статистика по ссылкам
+func (m *InMemory) Urls(_ context.Context) int {
+	return len(m.store)
+}
